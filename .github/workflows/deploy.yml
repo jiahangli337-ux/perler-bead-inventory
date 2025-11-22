@@ -1,29 +1,48 @@
 name: Deploy Vite + React to GitHub Pages
+
 on:
   push:
     branches: [ main ]
+  # 允许手动从 Actions 选项卡运行此工作流
+  workflow_dispatch:
+
+# 必须设置权限： Pages 需要 'write' 权限来部署
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # 添加此行，以允许 Action 推送到 gh-pages 分支
-      pages: write
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # 使用您之前配置的 Node.js 版本
           cache: 'npm'
+          
       - name: Install dependencies
         run: npm install
+        
       - name: Build project (生成可部署文件)
         run: npm run build
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+
+      # =========================================================
+      # 官方 Pages 部署步骤（取代 peaceiris/actions-gh-pages）
+      # =========================================================
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v5 # 1. 配置 Pages 环境
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3 # 2. 上传构建后的 dist 目录
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist  # 部署 Vite 构建后的 dist 目录
-          enable_jekyll: false
+          path: './dist' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # 3. 部署到 Pages 环境
