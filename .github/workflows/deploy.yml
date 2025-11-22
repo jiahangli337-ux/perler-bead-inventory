@@ -6,6 +6,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
+      contents: write # 添加此行，以允许 Action 推送到 gh-pages 分支
       pages: write
       id-token: write
     steps:
