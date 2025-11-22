@@ -1,0 +1,25 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]  # 只在main分支推送时触发
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4  # 拉取仓库代码
+      - name: 配置Node.js环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'       # 选择Node.js版本
+          cache: 'npm'             # 缓存npm依赖，加速构建
+      - name: 安装依赖
+        run: npm install
+      - name: 构建项目
+        run: npm run build         # Vite的构建命令，生成dist目录
+      - name: 部署到GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist      # 指定要部署的静态文件目录（Vite构建后生成的dist）
