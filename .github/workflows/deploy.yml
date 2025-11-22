@@ -1,25 +1,51 @@
-name: Deploy to GitHub Pages
+# .github/workflows/deploy.yml
 
+# 工作流名称
+name: Deploy Vite + React to GitHub Pages
+
+# 触发条件：当代码推送到 main 分支时自动执行
 on:
   push:
-    branches: [ main ]  # 只在main分支推送时触发
+    branches: [ main ]
 
+# 任务定义
 jobs:
   build-and-deploy:
+    # 在最新版的 Ubuntu 系统上运行
     runs-on: ubuntu-latest
+    
+    # 权限配置，确保部署时拥有足够权限
+    permissions:
+      pages: write
+      id-token: write
+
+    # 步骤序列
     steps:
-      - uses: actions/checkout@v4  # 拉取仓库代码
-      - name: 配置Node.js环境
+      # 步骤 1：从 GitHub 拉取代码到服务器
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤 2：设置 Node.js 环境（Vite 需要 Node.js）
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'       # 选择Node.js版本
-          cache: 'npm'             # 缓存npm依赖，加速构建
-      - name: 安装依赖
+          node-version: '20'  # 使用 Node.js 20.x 版本
+          cache: 'npm'        # 缓存 npm 依赖，加速下次构建
+
+      # 步骤 3：安装项目所有依赖
+      - name: Install dependencies
         run: npm install
-      - name: 构建项目
-        run: npm run build         # Vite的构建命令，生成dist目录
-      - name: 部署到GitHub Pages
+
+      # 步骤 4：构建项目（生成静态文件）
+      - name: Build project
+        run: npm run build
+
+      # 步骤 5：部署构建好的文件到 GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist      # 指定要部署的静态文件目录（Vite构建后生成的dist）
+          # 指明要部署的文件夹是 Vite 构建后生成的 'dist' 文件夹
+          publish_dir: ./dist
+          # 部署后不保留 .nojekyll 文件，避免 GitHub Pages 的 Jekyll 处理干扰
+          enable_jekyll: false
