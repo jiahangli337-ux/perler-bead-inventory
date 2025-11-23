@@ -1,729 +1,802 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, AlertCircle } from 'lucide-react';
-
-// --- 1. 精确颜色数据库 (保持不变) ---
-const EXACT_COLORS = {
-  // --- Image 1: A, B, C, D ---
-  'A01': '#FDFBC8', 'A02': '#FFFACD', 'A03': '#FFF200', 'A04': '#FFD700', 'A05': '#FFC125',
-  'A06': '#FFB03B', 'A07': '#FF8C00', 'A08': '#FFC850', 'A09': '#FF7F50', 'A10': '#FF4500',
-  'A11': '#FFE5B4', 'A12': '#FF9966', 'A13': '#FFCC33', 'A14': '#D72D34', 'A15': '#FFFFE0',
-  'A16': '#FAFAD2', 'A17': '#FCE57E', 'A18': '#FFCC99', 'A19': '#FF6F61', 'A20': '#EEDC82',
-  'A21': '#F0E68C', 'A22': '#DFFF00', 'A23': '#E3D5C3', 'A24': '#E7E2B0', 'A25': '#FFDB58', 'A26': '#DAA520',
- 
-  'B01': '#CCFF33', 'B02': '#66FF00', 'B03': '#99FF66', 'B04': '#76EE00', 'B05': '#33CC33',
-  'B06': '#66CDAA', 'B07': '#2E8B57', 'B08': '#006400', 'B09': '#2F4F4F', 'B10': '#93CDB9',
-  'B11': '#556B2F', 'B12': '#004837', 'B13': '#9ACD32', 'B14': '#7CFC00', 'B15': '#1B4D3E',
-  'B16': '#98FB98', 'B17': '#808000', 'B18': '#FFFF66', 'B19': '#20B2AA', 'B20': '#AFEEEE',
-  'B21': '#008080', 'B22': '#053436', 'B23': '#162015', 'B24': '#F0E68C', 'B25': '#5F9EA0',
-  'B26': '#6B8E23', 'B27': '#E0F3CD', 'B28': '#90EE90', 'B29': '#ADFF2F', 'B30': '#F0FFF0', 'B31': '#C1F0C1', 'B32': '#8FBC8F',
- 
-  'C01': '#E0FFFF', 'C02': '#AFEEEE', 'C03': '#ADD8E6', 'C04': '#87CEEB', 'C05': '#00BFFF',
-  'C06': '#1E90FF', 'C07': '#4169E1', 'C08': '#0000FF', 'C09': '#0000CD', 'C10': '#33B0E3',
-  'C11': '#00CED1', 'C12': '#191970', 'C13': '#E1F4F9', 'C14': '#B0E0E6', 'C15': '#48D1CC',
-  'C16': '#004681', 'C17': '#00BFFF', 'C18': '#1C2A45', 'C19': '#2874A6', 'C20': '#004F98',
-  'C21': '#B0C4DE', 'C22': '#5F9EA0', 'C23': '#A5CAD6', 'C24': '#6495ED', 'C25': '#AFEEEE',
-  'C26': '#4682B4', 'C27': '#E6E6FA', 'C28': '#D4D9E8', 'C29': '#27367D',
- 
-  'D01': '#E6E6FA', 'D02': '#BCA6D8', 'D03': '#4C5AA6', 'D04': '#1C2A5C', 'D05': '#9C4598',
-  'D06': '#A674B8', 'D07': '#8767A3', 'D08': '#E6E6FA', 'D09': '#D6CADD', 'D10': '#2E1B3E',
-  'D11': '#C6B5D4', 'D12': '#D98CB0', 'D13': '#C71585', 'D14': '#8B008B', 'D15': '#2C1D5E',
-  'D16': '#E8E8FF', 'D17': '#DCDCDC', 'D18': '#9966CC', 'D19': '#DDA0DD', 'D20': '#BA55D3',
-  'D21': '#800080', 'D22': '#282266', 'D23': '#F3E5F5', 'D24': '#7B68EE', 'D25': '#414EA4', 'D26': '#E0B0FF',
- 
-  'E01': '#FFE4E1', 'E02': '#FFB6C1', 'E03': '#FFC0CB', 'E04': '#FF69B4', 'E05': '#FF1493',
-  'E06': '#D74868', 'E07': '#C71585', 'E08': '#FFE4E1', 'E09': '#DA70D6', 'E10': '#C71585',
-  'E11': '#FADADD', 'E12': '#FF66CC', 'E13': '#8B0046', 'E14': '#FFDAB9', 'E15': '#FFE4E1',
-  'E16': '#FFF0F5', 'E17': '#FFF5EE', 'E18': '#FFB6C1', 'E19': '#FFC1CC', 'E20': '#D8BFD8',
-  'E21': '#BC8F8F', 'E22': '#C48EAC', 'E23': '#7B586D', 'E24': '#E6E6FA',
- 
-  'F01': '#FFA07A', 'F02': '#FF6347', 'F03': '#FF4500', 'F04': '#FF0000', 'F05': '#DC143C',
-  'F06': '#A52A2A', 'F07': '#B22222', 'F08': '#8B0000', 'F09': '#E9967A', 'F10': '#8B4513',
-  'F11': '#52181B', 'F12': '#FF5C5C', 'F13': '#FF7F50', 'F14': '#FA8072', 'F15': '#D32F2F',
-  'F16': '#FFDAB9', 'F17': '#F4A460', 'F18': '#D2691E', 'F19': '#CD5C5C', 'F20': '#BC8F8F',
-  'F21': '#FFC0CB', 'F22': '#FFB6C1', 'F23': '#FF69B4', 'F24': '#FFB7C5', 'F25': '#E75480',
- 
-  'G01': '#FFF8DC', 'G02': '#FFE4C4', 'G03': '#FFDEAD', 'G04': '#F5DEB3', 'G05': '#DEB887',
-  'G06': '#DAA520', 'G07': '#8B5A2B', 'G08': '#5D4037', 'G09': '#D2B48C', 'G10': '#CD853F',
-  'G11': '#BDB76B', 'G12': '#F0E68C', 'G13': '#A0522D', 'G14': '#6D4C41', 'G15': '#F5F5DC',
-  'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513', 'G21': '#8D6E63',
- 
-  'H01': '#FFFFFF', 'H02': '#F8F8FF', 'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
-  'H06': '#1A1A1A', 'H07': '#000000', 'H08': '#F2F2F2', 'H09': '#F5F5F5', 'H10': '#E0E0E0',
-  'H11': '#CCCCCC', 'H12': '#FFFFFF', 'H13': '#FFFFF0', 'H14': '#B0C4DE', 'H15': '#778899',
-  'H16': '#111111', 'H17': '#F5F5F5', 'H18': '#FFFFFF', 'H19': '#FAFAFA', 'H20': '#9E9E9E',
-  'H21': '#FFFFE0', 'H22': '#DCDCDC', 'H23': '#808080',
- 
-  'M01': '#C0C0C0', 'M02': '#808080', 'M03': '#708090', 'M04': '#F5F5DC', 'M05': '#BDB76B',
-  'M06': '#8B8B00', 'M07': '#BC8F8F', 'M08': '#CD5C5C', 'M09': '#CD853F', 'M10': '#C08081',
-  'M11': '#897383', 'M12': '#55474F', 'M13': '#CC9966', 'M14': '#A0522D', 'M15': '#708090',
-};
-
-// --- 2. 颜色处理工具函数 ---
-
-// 将 Hex 转换为 RGB 对象
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-};
-
-// 计算颜色差异 (简单的欧几里得距离)
-const colorDistance = (rgb1, rgb2) => {
-  return Math.sqrt(
-    Math.pow(rgb1.r - rgb2.r, 2) +
-    Math.pow(rgb1.g - rgb2.g, 2) +
-    Math.pow(rgb1.b - rgb2.b, 2)
-  );
-};
-
-// 预处理所有可用颜色的 RGB 值，提升性能
-const CACHED_RGB_COLORS = Object.entries(EXACT_COLORS).map(([id, hex]) => ({
-  id,
-  hex,
-  rgb: hexToRgb(hex)
-}));
-
-// 找到最近似的颜色 ID
-const findClosestColorId = (r, g, b) => {
-  let minDistance = Infinity;
-  let closestColor = CACHED_RGB_COLORS[0];
-  const targetRgb = { r, g, b };
-
-  for (const color of CACHED_RGB_COLORS) {
-    if (!color.rgb) continue;
-    const dist = colorDistance(targetRgb, color.rgb);
-    if (dist < minDistance) {
-      minDistance = dist;
-      closestColor = color;
-    }
-  }
-  return closestColor;
-};
-
-// 判断文字颜色是黑还是白 (根据背景亮度)
-const getContrastYIQ = (hexcolor) => {
-    hexcolor = hexcolor.replace("#", "");
-    var r = parseInt(hexcolor.substr(0,2),16);
-    var g = parseInt(hexcolor.substr(2,2),16);
-    var b = parseInt(hexcolor.substr(4,2),16);
-    var yiq = ((r*299)+(g*587)+(b*114))/1000;
-    return (yiq >= 128) ? 'black' : 'white';
-}
-
-// --- 3. 数据配置 ---
-const SERIES_CONFIG = {
-  A: { count: 26, label: 'A 黄色系' },
-  B: { count: 32, label: 'B 绿色系' },
-  C: { count: 29, label: 'C 蓝色系' },
-  D: { count: 26, label: 'D 紫色系' },
-  E: { count: 24, label: 'E 粉色系' },
-  F: { count: 25, label: 'F 红色系' },
-  G: { count: 21, label: 'G 棕色系' },
-  H: { count: 23, label: 'H 黑白灰' },
-  M: { count: 15, label: 'M 金属/灰' },
-};
-
-const generateInitialData = () => {
-  const data = [];
-  Object.entries(SERIES_CONFIG).forEach(([prefix, config]) => {
-    for (let i = 1; i <= config.count; i++) {
-      const numStr = i.toString().padStart(2, '0');
-      const id = `${prefix}${numStr}`;
-      const hex = EXACT_COLORS[id] || '#CCCCCC';
-      data.push({ id, prefix, name: id, count: 0, hex });
-    }
-  });
-  return data;
-};
-
-// --- 4. 主组件 ---
-export default function PerlerBeadApp() {
-  const [activeTab, setActiveTab] = useState('inventory'); // 'inventory' or 'pattern'
-  
-  // --- Inventory State ---
-  const [beads, setBeads] = useState(() => {
-    let initialData = [];
-    try {
-      const saved = localStorage.getItem('perler-bead-inventory-v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].prefix) {
-          initialData = parsed;
-        }
-      }
-    } catch (e) { console.error(e); }
-
-    if (initialData.length === 0) initialData = generateInitialData();
-
-    const validPrefixes = Object.keys(SERIES_CONFIG);
-    const syncedData = initialData
-      .filter(bead => validPrefixes.includes(bead.prefix))
-      .map(bead => ({ ...bead, hex: EXACT_COLORS[bead.id] || bead.hex }));
-
-    const currentIds = new Set(syncedData.map(b => b.id));
-    generateInitialData().forEach(item => {
-      if (!currentIds.has(item.id)) syncedData.push(item);
-    });
-
-    syncedData.sort((a, b) => {
-        if (a.prefix !== b.prefix) return a.prefix.localeCompare(b.prefix);
-        return a.id.localeCompare(b.id);
-    });
-
-    return syncedData;
-  });
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedBead, setSelectedBead] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const categoryScrollRef = useRef(null);
-
-  // --- Pattern Generator State ---
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [patternWidth, setPatternWidth] = useState(25); // 默认宽度 25 颗豆子
-  const [patternData, setPatternData] = useState([]); // 存储二维数组
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  // --- Deduction State (新增) ---
-  const [showDeductModal, setShowDeductModal] = useState(false);
-  const [deductionList, setDeductionList] = useState([]); // [{id, count, hex}, ...]
-
-  const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    localStorage.setItem('perler-bead-inventory-v2', JSON.stringify(beads));
-  }, [beads]);
-
-  // Inventory Logic
-  const filteredBeads = useMemo(() => {
-    let result = beads;
-    if (selectedCategory !== 'All') result = result.filter(bead => bead.prefix === selectedCategory);
-    if (searchTerm) result = result.filter(bead => bead.id.toLowerCase().includes(searchTerm.toLowerCase()));
-    return result;
-  }, [beads, selectedCategory, searchTerm]);
-
-  const updateCount = (id, newCount) => {
-    const validCount = Math.max(0, newCount);
-    setBeads(prev => prev.map(item => item.id === id ? { ...item, count: validCount } : item));
-    if (selectedBead && selectedBead.id === id) {
-      setSelectedBead(prev => ({ ...prev, count: validCount }));
-    }
-  };
-
-  const handleAdjust = (amount) => {
-    if (!selectedBead) return;
-    updateCount(selectedBead.id, selectedBead.count + amount);
-  };
-
-  const handleDirectInput = (e) => {
-    const val = parseInt(e.target.value) || 0;
-    updateCount(selectedBead.id, val);
-  };
-
-  const handleCategoryClick = (cat) => {
-    setSelectedCategory(cat);
-    setSearchTerm('');
-  };
-
-  const handleResetData = () => {
-    if (window.confirm('确定要重置所有数据吗？')) {
-      setBeads(generateInitialData());
-      setShowSettings(false);
-      alert('数据已重置。');
-    }
-  };
-
-  // --- Pattern Generator Logic ---
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setSelectedImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const generatePattern = () => {
-    if (!selectedImage || !canvasRef.current) return;
-    setIsProcessing(true);
-
-    const img = new Image();
-    img.src = selectedImage;
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      
-      const aspectRatio = img.height / img.width;
-      const targetWidth = parseInt(patternWidth);
-      const targetHeight = Math.round(targetWidth * aspectRatio);
-
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-      const pixels = imageData.data;
-      const newPattern = [];
-
-      for (let y = 0; y < targetHeight; y++) {
-        const row = [];
-        for (let x = 0; x < targetWidth; x++) {
-          const index = (y * targetWidth + x) * 4;
-          const r = pixels[index];
-          const g = pixels[index + 1];
-          const b = pixels[index + 2];
-          const a = pixels[index + 3];
-
-          if (a < 128) {
-            row.push(null); 
-          } else {
-            const match = findClosestColorId(r, g, b);
-            row.push(match);
-          }
-        }
-        newPattern.push(row);
-      }
-
-      setPatternData(newPattern);
-      setIsProcessing(false);
-    };
-  };
-
-  // 统计图纸需要的豆子总量
-  const patternSummary = useMemo(() => {
-    const summary = {};
-    patternData.flat().forEach(cell => {
-      if (cell) {
-        summary[cell.id] = (summary[cell.id] || 0) + 1;
-      }
-    });
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拼豆大师 - 自由替换版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    return Object.entries(summary)
-      .map(([id, count]) => {
-        const colorInfo = CACHED_RGB_COLORS.find(c => c.id === id);
-        return { id, count, hex: colorInfo.hex };
-      })
-      .sort((a, b) => b.count - a.count);
-  }, [patternData]);
-
-  // --- Deduction Logic (新增逻辑) ---
-
-  // 1. 初始化并打开扣除弹窗
-  const openDeductModal = () => {
-    // 深度复制一份数据到 deductionList，以便用户修改
-    const initialList = patternSummary.map(item => ({...item}));
-    setDeductionList(initialList);
-    setShowDeductModal(true);
-  };
-
-  // 2. 处理弹窗中输入的修改
-  const handleDeductChange = (id, newCount) => {
-    const validCount = Math.max(0, parseInt(newCount) || 0);
-    setDeductionList(prev => prev.map(item => item.id === id ? { ...item, count: validCount } : item));
-  };
-
-  // 3. 确认并执行扣除
-  const handleConfirmDeduction = () => {
-    setBeads(prevBeads => {
-      const newBeads = [...prevBeads];
-      deductionList.forEach(deductItem => {
-        const beadIndex = newBeads.findIndex(b => b.id === deductItem.id);
-        if (beadIndex > -1) {
-          // 确保不扣成负数 (或者你可以允许负数表示欠缺)
-          newBeads[beadIndex] = {
-            ...newBeads[beadIndex],
-            count: Math.max(0, newBeads[beadIndex].count - deductItem.count)
-          };
-        }
-      });
-      return newBeads;
-    });
-
-    setShowDeductModal(false);
-    // 这里可以加一个简单的 Toast 提示，这里用 alert 代替
-    alert('🎉 已扣除库存，作品完成！');
-  };
-
-  // --- Render Views ---
-
-  const renderInventoryView = () => (
-    <>
-      <div className="bg-white px-4 pt-4 pb-2 shadow-sm z-10">
-        <div className="flex justify-between items-center mb-3">
-          <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800">
-            <div className="bg-blue-600 p-1.5 rounded-lg text-white"><Package size={18} /></div>
-            拼豆库存
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-               总数: <span className="font-bold text-blue-600">{beads.reduce((a, c) => a + c.count, 0)}</span>
-            </div>
-            <button onClick={() => setShowSettings(true)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-full"><Settings size={20} /></button>
-          </div>
-        </div>
-        <div className="relative mb-2">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-          <input 
-            type="text" 
-            placeholder="搜索色号 (例如: A05)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-100 text-gray-800 placeholder-gray-400 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-          />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><X size={14} /></button>
-          )}
-        </div>
-      </div>
-
-      <div className="bg-white border-b border-gray-100 py-2 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
-        <div ref={categoryScrollRef} className="flex overflow-x-auto px-4 gap-2 custom-scrollbar pb-1 select-none">
-          <button
-            onClick={() => handleCategoryClick('All')}
-            className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedCategory === 'All' ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-100 text-gray-600'}`}
-          >
-            全部
-          </button>
-          {Object.keys(SERIES_CONFIG).map(prefix => (
-            <button
-              key={prefix}
-              onClick={() => handleCategoryClick(prefix)}
-              className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${selectedCategory === prefix ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600'}`}
-            >
-              <span className="font-bold">{prefix}</span>
-              {selectedCategory === prefix && <span className="text-[10px] opacity-80 ml-1">系列</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto bg-gray-50 p-3 space-y-2 custom-scrollbar pb-24">
-        {filteredBeads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <Filter size={48} className="mb-2 opacity-20" />
-            <p>该分类下没有找到色号</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2">
-             <div className="flex justify-between items-center px-1 text-xs text-gray-400 mb-1">
-               <span>{selectedCategory === 'All' ? '所有色号' : `${SERIES_CONFIG[selectedCategory].label}`}</span>
-               <span>{filteredBeads.length} 个结果</span>
-             </div>
-            {filteredBeads.map((bead) => (
-              <div key={bead.id} onClick={() => setSelectedBead(bead)} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer group">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full shadow-inner border border-gray-100" style={{ backgroundColor: bead.hex }}></div>
-                    <div className="absolute -bottom-1 -right-1 bg-gray-100 text-[10px] font-bold px-1 rounded text-gray-500 border border-white">{bead.prefix}</div>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-800 text-lg leading-none">{bead.id}</h3>
-                    <p className="text-[10px] text-gray-400 mt-1">库存</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className={`block text-xl font-bold leading-none ${bead.count === 0 ? 'text-red-400' : 'text-blue-600'}`}>{bead.count}</span>
-                    <span className="text-[10px] text-gray-400">颗</span>
-                  </div>
-                  <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  const renderMakerView = () => (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 pb-20">
-      <div className="bg-white px-4 pt-4 pb-4 shadow-sm z-10 border-b border-gray-100">
-        <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800 mb-4">
-          <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><Grid size={18} /></div>
-          图纸生成器
-        </h1>
-
-        {!patternData.length ? (
-          <div className="flex flex-col gap-4">
-            <div 
-              onClick={() => fileInputRef.current.click()}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              {selectedImage ? (
-                 <img src={selectedImage} alt="preview" className="h-32 object-contain mb-2 rounded shadow-sm" />
-              ) : (
-                <ImageIcon size={48} className="mb-2 opacity-30" />
-              )}
-              <span className="text-sm font-medium">{selectedImage ? '点击更换图片' : '点击上传图片'}</span>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            </div>
-
-            {selectedImage && (
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-bold text-gray-700">图纸宽度 (豆子数): {patternWidth}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="60" 
-                  step="1"
-                  value={patternWidth} 
-                  onChange={(e) => setPatternWidth(e.target.value)} 
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                   <span>10 (模糊)</span>
-                   <span>60 (清晰)</span>
-                </div>
-                
-                <button 
-                  onClick={generatePattern}
-                  disabled={isProcessing}
-                  className="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                >
-                  {isProcessing ? '生成中...' : '生成图纸'}
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex gap-2">
-             <button onClick={() => setPatternData([])} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-bold">重新上传</button>
-          </div>
-        )}
-      </div>
-
-      <canvas ref={canvasRef} className="hidden"></canvas>
-
-      {patternData.length > 0 && (
-        <div className="flex-1 overflow-auto bg-gray-200 p-4 custom-scrollbar relative">
-          <div className="bg-white shadow-2xl inline-block p-1 border border-gray-300">
-             <div className="flex">
-               <div className="w-6 shrink-0"></div>
-               {patternData[0].map((_, i) => (
-                  <div key={i} className="w-6 text-[8px] text-center text-gray-400 flex items-end justify-center pb-0.5 border-b border-gray-100">{(i+1)%5===0 ? i+1 : ''}</div>
-               ))}
-             </div>
-
-            {patternData.map((row, y) => (
-              <div key={y} className="flex">
-                 <div className="w-6 text-[8px] text-right pr-1 text-gray-400 flex items-center justify-end border-r border-gray-100 h-6">
-                    {(y+1)%5===0 ? y+1 : ''}
-                 </div>
-                {row.map((cell, x) => (
-                  <div 
-                    key={x} 
-                    className="w-6 h-6 flex items-center justify-center border-[0.5px] border-black/10 shrink-0 text-[7px] font-bold leading-none tracking-tighter"
-                    style={{ 
-                      backgroundColor: cell ? cell.hex : 'transparent',
-                      color: cell ? getContrastYIQ(cell.hex) : 'transparent'
-                    }}
-                    title={cell ? cell.id : 'Empty'}
-                  >
-                    {cell ? cell.id : ''}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {patternData.length > 0 && (
-        <div className="bg-white border-t border-gray-200 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex flex-col" style={{maxHeight: '40vh'}}>
-           <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
-             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">所需材料清单</h3>
-             <button 
-                onClick={openDeductModal}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all shadow-sm"
-             >
-                <CheckCircle size={14} /> 完成制作
-             </button>
-           </div>
-           
-           <div className="overflow-y-auto p-3 custom-scrollbar">
-             <div className="grid grid-cols-4 gap-2">
-               {patternSummary.map(item => {
-                 const inventoryItem = beads.find(b => b.id === item.id);
-                 const isEnough = inventoryItem ? inventoryItem.count >= item.count : false;
-                 
-                 return (
-                  <div key={item.id} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="w-6 h-6 rounded-full border border-gray-200 shadow-sm mb-1" style={{backgroundColor: item.hex}}></div>
-                    <span className="text-xs font-bold text-gray-800">{item.id}</span>
-                    <div className="flex items-baseline gap-0.5 mt-0.5">
-                       <span className="text-sm font-bold text-indigo-600">{item.count}</span>
-                       <span className="text-[8px] text-gray-400">颗</span>
-                    </div>
-                    {!isEnough && (
-                       <span className="text-[8px] text-red-500 bg-red-50 px-1 rounded mt-1">缺 {item.count - (inventoryItem?.count || 0)}</span>
-                    )}
-                  </div>
-               )})}
-             </div>
-           </div>
-        </div>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-50 font-sans text-gray-800 max-w-md mx-auto shadow-2xl overflow-hidden relative">
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {activeTab === 'inventory' ? renderInventoryView() : renderMakerView()}
-      </div>
-
-      <div className="bg-white border-t border-gray-200 flex justify-around items-center h-16 shrink-0 z-20 pb-safe">
-        <button 
-          onClick={() => setActiveTab('inventory')}
-          className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'inventory' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-          <Package size={24} strokeWidth={activeTab === 'inventory' ? 2.5 : 2} />
-          <span className="text-[10px] font-medium mt-1">库存管理</span>
-        </button>
-        <button 
-          onClick={() => setActiveTab('pattern')}
-          className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'pattern' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-        >
-          <Grid size={24} strokeWidth={activeTab === 'pattern' ? 2.5 : 2} />
-          <span className="text-[10px] font-medium mt-1">制作图纸</span>
-        </button>
-      </div>
-
-      {/* 设置弹窗 */}
-      {showSettings && (
-        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-           <div className="bg-white w-full max-w-xs rounded-2xl p-5 shadow-xl relative z-10">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Settings size={20} /> 设置</h2>
-              <div className="space-y-3">
-                <button onClick={handleResetData} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3 rounded-xl font-medium flex items-center justify-center gap-2 border border-red-100"><RefreshCw size={18} /> 重置所有数据</button>
-                <p className="text-xs text-gray-400 text-center px-2">这会清空库存数量，并严格重置为包含 A, B, C, D, E, F, G, H, M 系列的最新图谱数据。</p>
-              </div>
-              <button onClick={() => setShowSettings(false)} className="w-full mt-6 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">关闭</button>
-           </div>
-        </div>
-      )}
-
-      {/* 库存扣除确认弹窗 (新增) */}
-      {showDeductModal && (
-        <div className="absolute inset-0 z-50 flex items-end justify-center">
-           <div 
-             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
-             onClick={() => setShowDeductModal(false)}
-           ></div>
-           <div className="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[80vh]">
-              <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6 shrink-0"></div>
-              
-              <div className="text-center mb-6 shrink-0">
-                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle size={32} />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">确认消耗数量</h2>
-                <p className="text-sm text-gray-500 mt-1">请确认或修改实际消耗的豆子数量，点击确认后将从库存中扣除。</p>
-              </div>
-
-              <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl mb-4 bg-gray-50 p-2">
-                 {deductionList.map(item => (
-                   <div key={item.id} className="flex items-center justify-between p-3 bg-white mb-2 rounded-lg shadow-sm border border-gray-100">
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full border border-gray-200 shadow-sm" style={{backgroundColor: item.hex}}></div>
-                         <span className="font-bold text-gray-800 w-8">{item.id}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                         <span className="text-xs text-gray-400">消耗</span>
-                         <input 
-                           type="number" 
-                           value={item.count}
-                           onChange={(e) => handleDeductChange(item.id, e.target.value)}
-                           className="w-16 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-right font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                         />
-                         <span className="text-xs text-gray-400">颗</span>
-                      </div>
-                   </div>
-                 ))}
-              </div>
-
-              <div className="flex gap-3 shrink-0">
-                 <button onClick={() => setShowDeductModal(false)} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">取消</button>
-                 <button onClick={handleConfirmDeduction} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">确认扣除</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* 编辑弹窗 (仅在库存模式下有效) */}
-      {selectedBead && activeTab === 'inventory' && (
-        <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none">
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-auto transition-opacity animate-in fade-in"
-            onClick={() => setSelectedBead(null)}
-          ></div>
-          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl pointer-events-auto animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh] relative z-10">
-            <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6"></div>
-            <div className="flex items-start gap-5 mb-8">
-              <div className="w-20 h-20 rounded-2xl shadow-md border-4 border-white ring-1 ring-gray-100 shrink-0" style={{ backgroundColor: selectedBead.hex }}></div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                   <div>
-                     <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded mb-1">{SERIES_CONFIG[selectedBead.prefix]?.label || '未知系列'}</span>
-                     <h2 className="text-3xl font-bold text-gray-900">{selectedBead.id}</h2>
-                   </div>
-                   <button onClick={() => setSelectedBead(null)} className="p-2 -mr-2 -mt-2 text-gray-400 hover:bg-gray-100 rounded-full"><X size={24} /></button>
-                </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-sm text-gray-500">当前库存:</span>
-                  <span className={`text-2xl font-bold ${selectedBead.count < 10 ? 'text-red-500' : 'text-blue-600'}`}>{selectedBead.count}</span>
-                  <span className="text-sm text-gray-400">颗</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6 mb-4">
-              <div className="bg-gray-50 rounded-xl p-1 flex items-center border border-gray-200">
-                <div className="pl-4 text-gray-500 text-sm font-medium">修改总量</div>
-                <input 
-                  type="number" 
-                  value={selectedBead.count}
-                  onChange={handleDirectInput}
-                  className="w-full bg-transparent text-right p-3 text-2xl font-bold text-gray-800 focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <button onClick={() => handleAdjust(-1)} className="flex-1 bg-red-50 active:bg-red-100 text-red-600 py-3 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-red-100"><Minus size={18} strokeWidth={3} /> 1</button>
-                  <button onClick={() => handleAdjust(-10)} className="py-2 text-sm text-red-400 hover:text-red-600 font-medium bg-white border border-dashed border-red-200 rounded-lg">消耗 10 颗</button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button onClick={() => handleAdjust(1)} className="flex-1 bg-blue-50 active:bg-blue-100 text-blue-600 py-3 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-blue-100"><Plus size={18} strokeWidth={3} /> 1</button>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleAdjust(10)} className="flex-1 py-2 text-sm text-blue-500 font-medium bg-white border border-blue-100 rounded-lg shadow-sm">+10</button>
-                    <button onClick={() => handleAdjust(100)} className="flex-1 py-2 text-sm text-blue-500 font-medium bg-white border border-blue-100 rounded-lg shadow-sm">+100</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setSelectedBead(null)} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-[0.99] transition-transform mt-auto">完成编辑</button>
-          </div>
-        </div>
-      )}
-
-      <style>{`
+    <style>
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-      `}</style>
-    </div>
-  );
-}
+        .hidden-input { display: none; }
+        /* 优化移动端下拉框体验 */
+        select { -webkit-appearance: none; appearance: none; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- 图标组件 ---
+        const Icons = {
+            Search: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+            Plus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            Minus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            Package: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Filter: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+            Settings: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            RefreshCw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>,
+            Image: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
+            Grid: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
+            CheckCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>,
+            ChevronDown: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        };
+
+        // --- 1. 精确颜色数据库 ---
+        const EXACT_COLORS = {
+            'A01': '#FDFBC8', 'A02': '#FFFACD', 'A03': '#FFF200', 'A04': '#FFD700', 'A05': '#FFC125',
+            'A06': '#FFB03B', 'A07': '#FF8C00', 'A08': '#FFC850', 'A09': '#FF7F50', 'A10': '#FF4500',
+            'A11': '#FFE5B4', 'A12': '#FF9966', 'A13': '#FFCC33', 'A14': '#D72D34', 'A15': '#FFFFE0',
+            'A16': '#FAFAD2', 'A17': '#FCE57E', 'A18': '#FFCC99', 'A19': '#FF6F61', 'A20': '#EEDC82',
+            'A21': '#F0E68C', 'A22': '#DFFF00', 'A23': '#E3D5C3', 'A24': '#E7E2B0', 'A25': '#FFDB58', 'A26': '#DAA520',
+            'B01': '#CCFF33', 'B02': '#66FF00', 'B03': '#99FF66', 'B04': '#76EE00', 'B05': '#33CC33',
+            'B06': '#66CDAA', 'B07': '#2E8B57', 'B08': '#006400', 'B09': '#2F4F4F', 'B10': '#93CDB9',
+            'B11': '#556B2F', 'B12': '#004837', 'B13': '#9ACD32', 'B14': '#7CFC00', 'B15': '#1B4D3E',
+            'B16': '#98FB98', 'B17': '#808000', 'B18': '#FFFF66', 'B19': '#20B2AA', 'B20': '#AFEEEE',
+            'B21': '#008080', 'B22': '#053436', 'B23': '#162015', 'B24': '#F0E68C', 'B25': '#5F9EA0',
+            'B26': '#6B8E23', 'B27': '#E0F3CD', 'B28': '#90EE90', 'B29': '#ADFF2F', 'B30': '#F0FFF0', 'B31': '#C1F0C1', 'B32': '#8FBC8F',
+            'C01': '#E0FFFF', 'C02': '#AFEEEE', 'C03': '#ADD8E6', 'C04': '#87CEEB', 'C05': '#00BFFF',
+            'C06': '#1E90FF', 'C07': '#4169E1', 'C08': '#0000FF', 'C09': '#0000CD', 'C10': '#33B0E3',
+            'C11': '#00CED1', 'C12': '#191970', 'C13': '#E1F4F9', 'C14': '#B0E0E6', 'C15': '#48D1CC',
+            'C16': '#004681', 'C17': '#00BFFF', 'C18': '#1C2A45', 'C19': '#2874A6', 'C20': '#004F98',
+            'C21': '#B0C4DE', 'C22': '#5F9EA0', 'C23': '#A5CAD6', 'C24': '#6495ED', 'C25': '#AFEEEE',
+            'C26': '#4682B4', 'C27': '#E6E6FA', 'C28': '#D4D9E8', 'C29': '#27367D',
+            'D01': '#E6E6FA', 'D02': '#BCA6D8', 'D03': '#4C5AA6', 'D04': '#1C2A5C', 'D05': '#9C4598',
+            'D06': '#A674B8', 'D07': '#8767A3', 'D08': '#E6E6FA', 'D09': '#D6CADD', 'D10': '#2E1B3E',
+            'D11': '#C6B5D4', 'D12': '#D98CB0', 'D13': '#C71585', 'D14': '#8B008B', 'D15': '#2C1D5E',
+            'D16': '#E8E8FF', 'D17': '#DCDCDC', 'D18': '#9966CC', 'D19': '#DDA0DD', 'D20': '#BA55D3',
+            'D21': '#800080', 'D22': '#282266', 'D23': '#F3E5F5', 'D24': '#7B68EE', 'D25': '#414EA4', 'D26': '#E0B0FF',
+            'E01': '#FFE4E1', 'E02': '#FFB6C1', 'E03': '#FFC0CB', 'E04': '#FF69B4', 'E05': '#FF1493',
+            'E06': '#D74868', 'E07': '#C71585', 'E08': '#FFE4E1', 'E09': '#DA70D6', 'E10': '#C71585',
+            'E11': '#FADADD', 'E12': '#FF66CC', 'E13': '#8B0046', 'E14': '#FFDAB9', 'E15': '#FFE4E1',
+            'E16': '#FFF0F5', 'E17': '#FFF5EE', 'E18': '#FFB6C1', 'E19': '#FFC1CC', 'E20': '#D8BFD8',
+            'E21': '#BC8F8F', 'E22': '#C48EAC', 'E23': '#7B586D', 'E24': '#E6E6FA',
+            'F01': '#FFA07A', 'F02': '#FF6347', 'F03': '#FF4500', 'F04': '#FF0000', 'F05': '#DC143C',
+            'F06': '#A52A2A', 'F07': '#B22222', 'F08': '#8B0000', 'F09': '#E9967A', 'F10': '#8B4513',
+            'F11': '#52181B', 'F12': '#FF5C5C', 'F13': '#FF7F50', 'F14': '#FA8072', 'F15': '#D32F2F',
+            'F16': '#FFDAB9', 'F17': '#F4A460', 'F18': '#D2691E', 'F19': '#CD5C5C', 'F20': '#BC8F8F',
+            'F21': '#FFC0CB', 'F22': '#FFB6C1', 'F23': '#FF69B4', 'F24': '#FFB7C5', 'F25': '#E75480',
+            'G01': '#FFF8DC', 'G02': '#FFE4C4', 'G03': '#FFDEAD', 'G04': '#F5DEB3', 'G05': '#DEB887',
+            'G06': '#DAA520', 'G07': '#8B5A2B', 'G08': '#5D4037', 'G09': '#D2B48C', 'G10': '#CD853F',
+            'G11': '#BDB76B', 'G12': '#F0E68C', 'G13': '#A0522D', 'G14': '#6D4C41', 'G15': '#F5F5DC',
+            'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513', 'G21': '#8D6E63',
+            'H01': '#FFFFFF', 'H02': '#F8F8FF', 'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
+            'H06': '#1A1A1A', 'H07': '#000000', 'H08': '#F2F2F2', 'H09': '#F5F5F5', 'H10': '#E0E0E0',
+            'H11': '#CCCCCC', 'H12': '#FFFFFF', 'H13': '#FFFFF0', 'H14': '#B0C4DE', 'H15': '#778899',
+            'H16': '#111111', 'H17': '#F5F5F5', 'H18': '#FFFFFF', 'H19': '#FAFAFA', 'H20': '#9E9E9E',
+            'H21': '#FFFFE0', 'H22': '#DCDCDC', 'H23': '#808080',
+            'M01': '#C0C0C0', 'M02': '#808080', 'M03': '#708090', 'M04': '#F5F5DC', 'M05': '#BDB76B',
+            'M06': '#8B8B00', 'M07': '#BC8F8F', 'M08': '#CD5C5C', 'M09': '#CD853F', 'M10': '#C08081',
+            'M11': '#897383', 'M12': '#55474F', 'M13': '#CC9966', 'M14': '#A0522D', 'M15': '#708090',
+        };
+
+        // --- 工具函数 ---
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        };
+
+        const colorDistance = (rgb1, rgb2) => {
+            return Math.sqrt(
+                Math.pow(rgb1.r - rgb2.r, 2) +
+                Math.pow(rgb1.g - rgb2.g, 2) +
+                Math.pow(rgb1.b - rgb2.b, 2)
+            );
+        };
+
+        const CACHED_RGB_COLORS = Object.entries(EXACT_COLORS).map(([id, hex]) => ({
+            id,
+            hex,
+            rgb: hexToRgb(hex)
+        }));
+
+        const findClosestColorId = (r, g, b) => {
+            let minDistance = Infinity;
+            let closestColor = CACHED_RGB_COLORS[0];
+            const targetRgb = { r, g, b };
+
+            for (const color of CACHED_RGB_COLORS) {
+                if (!color.rgb) continue;
+                const dist = colorDistance(targetRgb, color.rgb);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestColor = color;
+                }
+            }
+            return closestColor;
+        };
+
+        const getContrastYIQ = (hexcolor) => {
+            hexcolor = hexcolor.replace("#", "");
+            var r = parseInt(hexcolor.substr(0,2),16);
+            var g = parseInt(hexcolor.substr(2,2),16);
+            var b = parseInt(hexcolor.substr(4,2),16);
+            var yiq = ((r*299)+(g*587)+(b*114))/1000;
+            return (yiq >= 128) ? 'black' : 'white';
+        }
+
+        // --- 数据配置 ---
+        const SERIES_CONFIG = {
+            A: { count: 26, label: 'A 黄色系' },
+            B: { count: 32, label: 'B 绿色系' },
+            C: { count: 29, label: 'C 蓝色系' },
+            D: { count: 26, label: 'D 紫色系' },
+            E: { count: 24, label: 'E 粉色系' },
+            F: { count: 25, label: 'F 红色系' },
+            G: { count: 21, label: 'G 棕色系' },
+            H: { count: 23, label: 'H 黑白灰' },
+            M: { count: 15, label: 'M 金属/灰' },
+        };
+
+        const generateInitialData = () => {
+            const data = [];
+            Object.entries(SERIES_CONFIG).forEach(([prefix, config]) => {
+                for (let i = 1; i <= config.count; i++) {
+                    const numStr = i.toString().padStart(2, '0');
+                    const id = `${prefix}${numStr}`;
+                    const hex = EXACT_COLORS[id] || '#CCCCCC';
+                    data.push({ id, prefix, name: id, count: 0, hex });
+                }
+            });
+            return data;
+        };
+
+        // --- 主应用组件 ---
+        function PerlerBeadApp() {
+            const [activeTab, setActiveTab] = useState('inventory');
+            
+            // --- Inventory State ---
+            const [beads, setBeads] = useState(() => {
+                let initialData = [];
+                try {
+                    const saved = localStorage.getItem('perler-bead-inventory-v2');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].prefix) {
+                            initialData = parsed;
+                        }
+                    }
+                } catch (e) { console.error(e); }
+
+                if (initialData.length === 0) initialData = generateInitialData();
+
+                const validPrefixes = Object.keys(SERIES_CONFIG);
+                const syncedData = initialData
+                    .filter(bead => validPrefixes.includes(bead.prefix))
+                    .map(bead => ({ ...bead, hex: EXACT_COLORS[bead.id] || bead.hex }));
+
+                const currentIds = new Set(syncedData.map(b => b.id));
+                generateInitialData().forEach(item => {
+                    if (!currentIds.has(item.id)) syncedData.push(item);
+                });
+
+                syncedData.sort((a, b) => {
+                    if (a.prefix !== b.prefix) return a.prefix.localeCompare(b.prefix);
+                    return a.id.localeCompare(b.id);
+                });
+
+                return syncedData;
+            });
+
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('All');
+            const [selectedBead, setSelectedBead] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const categoryScrollRef = useRef(null);
+
+            // --- Pattern Generator State ---
+            const [selectedImage, setSelectedImage] = useState(null);
+            const [patternWidth, setPatternWidth] = useState(25);
+            const [patternData, setPatternData] = useState([]);
+            const [isProcessing, setIsProcessing] = useState(false);
+            
+            // --- Deduction State ---
+            const [showDeductModal, setShowDeductModal] = useState(false);
+            const [deductionList, setDeductionList] = useState([]); 
+
+            const fileInputRef = useRef(null);
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                localStorage.setItem('perler-bead-inventory-v2', JSON.stringify(beads));
+            }, [beads]);
+
+            // 构建下拉菜单选项，按系列分组，避免useMemo重复计算
+            const groupedColorOptions = useMemo(() => {
+                const groups = {};
+                Object.keys(SERIES_CONFIG).forEach(key => groups[key] = []);
+                Object.keys(EXACT_COLORS).forEach(id => {
+                    const prefix = id.charAt(0);
+                    if (groups[prefix]) {
+                        groups[prefix].push(id);
+                    }
+                });
+                return groups;
+            }, []);
+
+            // Inventory Logic
+            const filteredBeads = useMemo(() => {
+                let result = beads;
+                if (selectedCategory !== 'All') result = result.filter(bead => bead.prefix === selectedCategory);
+                if (searchTerm) result = result.filter(bead => bead.id.toLowerCase().includes(searchTerm.toLowerCase()));
+                return result;
+            }, [beads, selectedCategory, searchTerm]);
+
+            const updateCount = (id, newCount) => {
+                const validCount = Math.max(0, newCount);
+                setBeads(prev => prev.map(item => item.id === id ? { ...item, count: validCount } : item));
+                if (selectedBead && selectedBead.id === id) {
+                    setSelectedBead(prev => ({ ...prev, count: validCount }));
+                }
+            };
+
+            const handleAdjust = (amount) => {
+                if (!selectedBead) return;
+                updateCount(selectedBead.id, selectedBead.count + amount);
+            };
+
+            const handleDirectInput = (e) => {
+                const val = parseInt(e.target.value) || 0;
+                updateCount(selectedBead.id, val);
+            };
+
+            const handleCategoryClick = (cat) => {
+                setSelectedCategory(cat);
+                setSearchTerm('');
+            };
+
+            const handleResetData = () => {
+                if (window.confirm('确定要重置所有数据吗？')) {
+                    setBeads(generateInitialData());
+                    setShowSettings(false);
+                    alert('数据已重置。');
+                }
+            };
+
+            // --- Pattern Generator Logic ---
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        setSelectedImage(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const generatePattern = () => {
+                if (!selectedImage || !canvasRef.current) return;
+                setIsProcessing(true);
+
+                const img = new Image();
+                img.src = selectedImage;
+                img.onload = () => {
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    
+                    const aspectRatio = img.height / img.width;
+                    const targetWidth = parseInt(patternWidth);
+                    const targetHeight = Math.round(targetWidth * aspectRatio);
+
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                    const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                    const pixels = imageData.data;
+                    const newPattern = [];
+
+                    for (let y = 0; y < targetHeight; y++) {
+                        const row = [];
+                        for (let x = 0; x < targetWidth; x++) {
+                            const index = (y * targetWidth + x) * 4;
+                            const r = pixels[index];
+                            const g = pixels[index + 1];
+                            const b = pixels[index + 2];
+                            const a = pixels[index + 3];
+
+                            if (a < 128) {
+                                row.push(null); 
+                            } else {
+                                const match = findClosestColorId(r, g, b);
+                                row.push(match);
+                            }
+                        }
+                        newPattern.push(row);
+                    }
+
+                    setPatternData(newPattern);
+                    setIsProcessing(false);
+                };
+            };
+
+            const patternSummary = useMemo(() => {
+                const summary = {};
+                patternData.flat().forEach(cell => {
+                    if (cell) {
+                        summary[cell.id] = (summary[cell.id] || 0) + 1;
+                    }
+                });
+                
+                return Object.entries(summary)
+                    .map(([id, count]) => {
+                        const colorInfo = CACHED_RGB_COLORS.find(c => c.id === id);
+                        return { id, count, hex: colorInfo.hex };
+                    })
+                    .sort((a, b) => b.count - a.count);
+            }, [patternData]);
+
+            // --- Deduction Logic ---
+
+            const openDeductModal = () => {
+                // 复制一份，添加唯一的 index key 用于 react 渲染，防止修改 ID 后 key 重复
+                const initialList = patternSummary.map((item, index) => ({...item, _key: index}));
+                setDeductionList(initialList);
+                setShowDeductModal(true);
+            };
+
+            const handleDeductCountChange = (index, newCount) => {
+                const validCount = Math.max(0, parseInt(newCount) || 0);
+                setDeductionList(prev => {
+                    const newList = [...prev];
+                    newList[index] = { ...newList[index], count: validCount };
+                    return newList;
+                });
+            };
+
+            const handleDeductColorChange = (index, newId) => {
+                const newHex = EXACT_COLORS[newId];
+                setDeductionList(prev => {
+                    const newList = [...prev];
+                    newList[index] = { ...newList[index], id: newId, hex: newHex };
+                    return newList;
+                });
+            };
+
+            const handleConfirmDeduction = () => {
+                setBeads(prevBeads => {
+                    const newBeads = [...prevBeads];
+                    // 即使列表中有重复的 ID，也会正确扣除多次
+                    deductionList.forEach(deductItem => {
+                        const beadIndex = newBeads.findIndex(b => b.id === deductItem.id);
+                        if (beadIndex > -1) {
+                            newBeads[beadIndex] = {
+                                ...newBeads[beadIndex],
+                                count: Math.max(0, newBeads[beadIndex].count - deductItem.count)
+                            };
+                        }
+                    });
+                    return newBeads;
+                });
+
+                setShowDeductModal(false);
+                alert('🎉 已扣除库存，作品完成！');
+            };
+
+            // --- Views ---
+            const renderInventoryView = () => (
+                <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <div className="bg-white px-4 pt-4 pb-2 shadow-sm z-10">
+                        <div className="flex justify-between items-center mb-3">
+                            <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                                <div className="bg-blue-600 p-1.5 rounded-lg text-white"><Icons.Package size={18} /></div>
+                                拼豆库存
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                    总数: <span className="font-bold text-blue-600">{beads.reduce((a, c) => a + c.count, 0)}</span>
+                                </div>
+                                <button onClick={() => setShowSettings(true)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-full"><Icons.Settings size={20} /></button>
+                            </div>
+                        </div>
+                        <div className="relative mb-2">
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"><Icons.Search size={16} /></div>
+                            <input 
+                                type="text" 
+                                placeholder="搜索色号 (例如: A05)"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-gray-100 text-gray-800 placeholder-gray-400 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><Icons.X size={14} /></button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Category Nav */}
+                    <div className="bg-white border-b border-gray-100 py-2 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
+                        <div ref={categoryScrollRef} className="flex overflow-x-auto px-4 gap-2 custom-scrollbar pb-1 select-none">
+                            <button
+                                onClick={() => handleCategoryClick('All')}
+                                className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedCategory === 'All' ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-100 text-gray-600'}`}
+                            >
+                                全部
+                            </button>
+                            {Object.keys(SERIES_CONFIG).map(prefix => (
+                                <button
+                                    key={prefix}
+                                    onClick={() => handleCategoryClick(prefix)}
+                                    className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${selectedCategory === prefix ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600'}`}
+                                >
+                                    <span className="font-bold">{prefix}</span>
+                                    {selectedCategory === prefix && <span className="text-[10px] opacity-80 ml-1">系列</span>}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="flex-1 overflow-y-auto bg-gray-50 p-3 space-y-2 custom-scrollbar pb-24">
+                        {filteredBeads.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                                <div className="mb-2 opacity-20"><Icons.Filter size={48} /></div>
+                                <p>该分类下没有找到色号</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-2">
+                                <div className="flex justify-between items-center px-1 text-xs text-gray-400 mb-1">
+                                    <span>{selectedCategory === 'All' ? '所有色号' : `${SERIES_CONFIG[selectedCategory].label}`}</span>
+                                    <span>{filteredBeads.length} 个结果</span>
+                                </div>
+                                {filteredBeads.map((bead) => (
+                                    <div key={bead.id} onClick={() => setSelectedBead(bead)} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative">
+                                                <div className="w-10 h-10 rounded-full shadow-inner border border-gray-100" style={{ backgroundColor: bead.hex }}></div>
+                                                <div className="absolute -bottom-1 -right-1 bg-gray-100 text-[10px] font-bold px-1 rounded text-gray-500 border border-white">{bead.prefix}</div>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-800 text-lg leading-none">{bead.id}</h3>
+                                                <p className="text-[10px] text-gray-400 mt-1">库存</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <span className={`block text-xl font-bold leading-none ${bead.count === 0 ? 'text-red-400' : 'text-blue-600'}`}>{bead.count}</span>
+                                                <span className="text-[10px] text-gray-400">颗</span>
+                                            </div>
+                                            <div className="text-gray-300 group-hover:text-blue-400 transition-colors"><Icons.ChevronRight size={16} /></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const renderMakerView = () => (
+                <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 pb-20">
+                    <div className="bg-white px-4 pt-4 pb-4 shadow-sm z-10 border-b border-gray-100">
+                        <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800 mb-4">
+                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><Icons.Grid size={18} /></div>
+                            图纸生成器
+                        </h1>
+
+                        {!patternData.length ? (
+                            <div className="flex flex-col gap-4">
+                                <div 
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                                >
+                                    {selectedImage ? (
+                                        <img src={selectedImage} alt="preview" className="h-32 object-contain mb-2 rounded shadow-sm" />
+                                    ) : (
+                                        <div className="mb-2 opacity-30"><Icons.Image size={48} /></div>
+                                    )}
+                                    <span className="text-sm font-medium">{selectedImage ? '点击更换图片' : '点击上传图片'}</span>
+                                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden-input" onChange={handleImageUpload} />
+                                </div>
+
+                                {selectedImage && (
+                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-bold text-gray-700">图纸宽度 (豆子数): {patternWidth}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="10" 
+                                            max="60" 
+                                            step="1"
+                                            value={patternWidth} 
+                                            onChange={(e) => setPatternWidth(e.target.value)} 
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                        />
+                                        <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                            <span>10 (模糊)</span>
+                                            <span>60 (清晰)</span>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={generatePattern}
+                                            disabled={isProcessing}
+                                            className="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                                        >
+                                            {isProcessing ? '生成中...' : '生成图纸'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <button onClick={() => setPatternData([])} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-bold">重新上传</button>
+                            </div>
+                        )}
+                    </div>
+
+                    <canvas ref={canvasRef} className="hidden"></canvas>
+
+                    {patternData.length > 0 && (
+                        <div className="flex-1 overflow-auto bg-gray-200 p-4 custom-scrollbar relative">
+                            <div className="bg-white shadow-2xl inline-block p-1 border border-gray-300">
+                                {/* Top coordinates */}
+                                <div className="flex">
+                                    <div className="w-6 shrink-0"></div>
+                                    {patternData[0].map((_, i) => (
+                                        <div key={i} className="w-6 text-[8px] text-center text-gray-400 flex items-end justify-center pb-0.5 border-b border-gray-100">{(i+1)%5===0 ? i+1 : ''}</div>
+                                    ))}
+                                </div>
+
+                                {patternData.map((row, y) => (
+                                    <div key={y} className="flex">
+                                        {/* Left coordinates */}
+                                        <div className="w-6 text-[8px] text-right pr-1 text-gray-400 flex items-center justify-end border-r border-gray-100 h-6">
+                                            {(y+1)%5===0 ? y+1 : ''}
+                                        </div>
+                                        
+                                        {row.map((cell, x) => (
+                                            <div 
+                                                key={x} 
+                                                className="w-6 h-6 flex items-center justify-center border-[0.5px] border-black/10 shrink-0 text-[7px] font-bold leading-none tracking-tighter"
+                                                style={{ 
+                                                    backgroundColor: cell ? cell.hex : 'transparent',
+                                                    color: cell ? getContrastYIQ(cell.hex) : 'transparent'
+                                                }}
+                                                title={cell ? cell.id : 'Empty'}
+                                            >
+                                                {cell ? cell.id : ''}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {patternData.length > 0 && (
+                        <div className="bg-white border-t border-gray-200 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex flex-col" style={{maxHeight: '40vh'}}>
+                            <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">所需材料清单</h3>
+                                <button 
+                                    onClick={openDeductModal}
+                                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all shadow-sm"
+                                >
+                                    <Icons.CheckCircle size={14} /> 完成制作
+                                </button>
+                            </div>
+                            
+                            <div className="overflow-y-auto p-3 custom-scrollbar">
+                                <div className="grid grid-cols-4 gap-2">
+                                    {patternSummary.map(item => {
+                                        const inventoryItem = beads.find(b => b.id === item.id);
+                                        const isEnough = inventoryItem ? inventoryItem.count >= item.count : false;
+                                        
+                                        return (
+                                            <div key={item.id} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div className="w-6 h-6 rounded-full border border-gray-200 shadow-sm mb-1" style={{backgroundColor: item.hex}}></div>
+                                                <span className="text-xs font-bold text-gray-800">{item.id}</span>
+                                                <div className="flex items-baseline gap-0.5 mt-0.5">
+                                                    <span className="text-sm font-bold text-indigo-600">{item.count}</span>
+                                                    <span className="text-[8px] text-gray-400">颗</span>
+                                                </div>
+                                                {!isEnough && (
+                                                    <span className="text-[8px] text-red-500 bg-red-50 px-1 rounded mt-1">缺 {item.count - (inventoryItem?.count || 0)}</span>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col h-screen bg-gray-50 font-sans text-gray-800 max-w-md mx-auto shadow-2xl overflow-hidden relative">
+                    {/* Content */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        {activeTab === 'inventory' ? renderInventoryView() : renderMakerView()}
+                    </div>
+
+                    {/* Tab Bar */}
+                    <div className="bg-white border-t border-gray-200 flex justify-around items-center h-16 shrink-0 z-20 pb-safe">
+                        <button 
+                            onClick={() => setActiveTab('inventory')}
+                            className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'inventory' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <Icons.Package size={24} strokeWidth={activeTab === 'inventory' ? 2.5 : 2} />
+                            <span className="text-[10px] font-medium mt-1">库存管理</span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('pattern')}
+                            className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'pattern' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <Icons.Grid size={24} strokeWidth={activeTab === 'pattern' ? 2.5 : 2} />
+                            <span className="text-[10px] font-medium mt-1">制作图纸</span>
+                        </button>
+                    </div>
+
+                    {/* Settings Modal */}
+                    {showSettings && (
+                        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-xs rounded-2xl p-5 shadow-xl relative z-10">
+                                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Icons.Settings size={20} /> 设置</h2>
+                                <div className="space-y-3">
+                                    <button onClick={handleResetData} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3 rounded-xl font-medium flex items-center justify-center gap-2 border border-red-100"><Icons.RefreshCw size={18} /> 重置所有数据</button>
+                                    <p className="text-xs text-gray-400 text-center px-2">这会清空库存数量，并严格重置为包含 A, B, C, D, E, F, G, H, M 系列的最新图谱数据。</p>
+                                </div>
+                                <button onClick={() => setShowSettings(false)} className="w-full mt-6 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">关闭</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Edit Modal */}
+                    {selectedBead && activeTab === 'inventory' && (
+                        <div className="absolute inset-0 z-50 flex items-end justify-center pointer-events-none">
+                            <div 
+                                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-auto transition-opacity"
+                                onClick={() => setSelectedBead(null)}
+                            ></div>
+                            <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl pointer-events-auto flex flex-col max-h-[85vh] relative z-10">
+                                <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6"></div>
+                                <div className="flex items-start gap-5 mb-8">
+                                    <div className="w-20 h-20 rounded-2xl shadow-md border-4 border-white ring-1 ring-gray-100 shrink-0" style={{ backgroundColor: selectedBead.hex }}></div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded mb-1">{SERIES_CONFIG[selectedBead.prefix]?.label || '未知系列'}</span>
+                                                <h2 className="text-3xl font-bold text-gray-900">{selectedBead.id}</h2>
+                                            </div>
+                                            <button onClick={() => setSelectedBead(null)} className="p-2 -mr-2 -mt-2 text-gray-400 hover:bg-gray-100 rounded-full"><Icons.X size={24} /></button>
+                                        </div>
+                                        <div className="mt-2 flex items-baseline gap-2">
+                                            <span className="text-sm text-gray-500">当前库存:</span>
+                                            <span className={`text-2xl font-bold ${selectedBead.count < 10 ? 'text-red-500' : 'text-blue-600'}`}>{selectedBead.count}</span>
+                                            <span className="text-sm text-gray-400">颗</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-6 mb-4">
+                                    <div className="bg-gray-50 rounded-xl p-1 flex items-center border border-gray-200">
+                                        <div className="pl-4 text-gray-500 text-sm font-medium">修改总量</div>
+                                        <input 
+                                            type="number" 
+                                            value={selectedBead.count}
+                                            onChange={handleDirectInput}
+                                            className="w-full bg-transparent text-right p-3 text-2xl font-bold text-gray-800 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-2">
+                                            <button onClick={() => handleAdjust(-1)} className="flex-1 bg-red-50 active:bg-red-100 text-red-600 py-3 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-red-100"><Icons.Minus size={18} strokeWidth={3} /> 1</button>
+                                            <button onClick={() => handleAdjust(-10)} className="py-2 text-sm text-red-400 hover:text-red-600 font-medium bg-white border border-dashed border-red-200 rounded-lg">消耗 10 颗</button>
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <button onClick={() => handleAdjust(1)} className="flex-1 bg-blue-50 active:bg-blue-100 text-blue-600 py-3 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-blue-100"><Icons.Plus size={18} strokeWidth={3} /> 1</button>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleAdjust(10)} className="flex-1 py-2 text-sm text-blue-500 font-medium bg-white border border-blue-100 rounded-lg shadow-sm">+10</button>
+                                                <button onClick={() => handleAdjust(100)} className="flex-1 py-2 text-sm text-blue-500 font-medium bg-white border border-blue-100 rounded-lg shadow-sm">+100</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedBead(null)} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-[0.99] transition-transform mt-auto">完成编辑</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Deduct Modal */}
+                    {showDeductModal && (
+                        <div className="absolute inset-0 z-50 flex items-end justify-center">
+                            <div 
+                                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                                onClick={() => setShowDeductModal(false)}
+                            ></div>
+                            <div className="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 flex flex-col max-h-[80vh]">
+                                <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6 shrink-0"></div>
+                                
+                                <div className="text-center mb-6 shrink-0">
+                                    <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <Icons.CheckCircle size={32} />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-gray-900">确认消耗</h2>
+                                    <p className="text-sm text-gray-500 mt-1">您可以修改实际使用的色号和数量。</p>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl mb-4 bg-gray-50 p-2">
+                                    {deductionList.map((item, index) => (
+                                        <div key={item._key} className="flex items-center justify-between p-3 bg-white mb-2 rounded-lg shadow-sm border border-gray-100">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className="w-8 h-8 rounded-full border border-gray-200 shadow-sm shrink-0 transition-colors duration-300" style={{backgroundColor: item.hex}}></div>
+                                                
+                                                {/* 色号选择器 */}
+                                                <div className="relative flex-1 max-w-[100px]">
+                                                    <select 
+                                                        value={item.id}
+                                                        onChange={(e) => handleDeductColorChange(index, e.target.value)}
+                                                        className="w-full appearance-none bg-gray-100 font-bold text-gray-800 py-1.5 pl-2 pr-6 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 border border-transparent"
+                                                    >
+                                                        {Object.entries(groupedColorOptions).map(([series, ids]) => (
+                                                            <optgroup label={SERIES_CONFIG[series].label} key={series}>
+                                                                {ids.map(id => (
+                                                                    <option key={id} value={id}>{id}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                        <Icons.ChevronDown size={12} />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 ml-2">
+                                                <span className="text-xs text-gray-400">消耗</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={item.count}
+                                                    onChange={(e) => handleDeductCountChange(index, e.target.value)}
+                                                    className="w-16 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-right font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                />
+                                                <span className="text-xs text-gray-400">颗</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-3 shrink-0">
+                                    <button onClick={() => setShowDeductModal(false)} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">取消</button>
+                                    <button onClick={handleConfirmDeduction} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">确认扣除</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PerlerBeadApp />);
+    </script>
+</body>
+</html>
