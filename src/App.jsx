@@ -46,7 +46,7 @@ const EXACT_COLORS = {
   'G06': '#DAA520', 'G07': '#8B5A2B', 'G08': '#5D4037', 'G09': '#D2B48C', 'G10': '#CD853F',
   'G11': '#BDB76B', 'G12': '#F0E68C', 'G13': '#A0522D', 'G14': '#6D4C41', 'G15': '#F5F5DC',
   'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513', 'G21': '#8D6E63',
-  // --- H 黑白灰 (修正：H01为透明，H02为纯白) ---
+  // --- H 黑白灰 (H01透明, H02纯白) ---
   'H01': 'transparent', // 透明豆
   'H02': '#FFFFFF',     // 纯白
   'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
@@ -206,7 +206,6 @@ export default function PerlerBeadApp() {
   const [deductionList, setDeductionList] = useState([]); 
 
   const fileInputRef = useRef(null);
-  // const canvasRef = useRef(null); // 不再需要显式的 canvasRef
 
   useEffect(() => {
     localStorage.setItem('perler-bead-inventory-v2', JSON.stringify(beads));
@@ -264,7 +263,7 @@ export default function PerlerBeadApp() {
     }
   };
 
-  // --- Pattern Generator Logic (核心升级：智能轮廓增强) ---
+  // --- Pattern Generator Logic (核心升级：柔和版智能轮廓增强) ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -297,23 +296,22 @@ export default function PerlerBeadApp() {
       const targetHeight = Math.round(targetWidth * aspectRatio);
 
       const newPattern = [];
-      // 计算每个豆子对应原图的区块大小
       const blockWidth = img.width / targetWidth;
       const blockHeight = img.height / targetHeight;
 
-      // 3. 智能采样循环
+      // 3. 柔和智能采样循环
       for (let y = 0; y < targetHeight; y++) {
         const row = [];
         for (let x = 0; x < targetWidth; x++) {
-          // 确定当前豆子对应的原图区块范围
           const startX = Math.floor(x * blockWidth);
           const startY = Math.floor(y * blockHeight);
           const endX = Math.min(img.width, Math.floor((x + 1) * blockWidth));
           const endY = Math.min(img.height, Math.floor((y + 1) * blockHeight));
 
-          // 核心逻辑：寻找区块内最深的非透明像素，以强调轮廓
+          let totalR = 0, totalG = 0, totalB = 0;
+          let pixelCount = 0;
           let darkestPixel = null;
-          let minBrightness = 255 * 3 + 1; // 初始亮度设为最大
+          let minBrightness = 255 * 3 + 1;
 
           for (let sy = startY; sy < endY; sy++) {
             for (let sx = startX; sx < endX; sx++) {
@@ -324,10 +322,15 @@ export default function PerlerBeadApp() {
                 const r = sourceData[i];
                 const g = sourceData[i + 1];
                 const b = sourceData[i + 2];
-                // 简单亮度计算 (R+G+B)
-                const brightness = r + g + b;
+                
+                // 累加用于计算平均值
+                totalR += r;
+                totalG += g;
+                totalB += b;
+                pixelCount++;
 
-                // 找到更黑的像素，更新
+                // 寻找最深色
+                const brightness = r + g + b;
                 if (brightness < minBrightness) {
                     minBrightness = brightness;
                     darkestPixel = { r, g, b };
@@ -335,11 +338,29 @@ export default function PerlerBeadApp() {
             }
           }
 
-          if (!darkestPixel) {
+          if (pixelCount === 0) {
             row.push(null); // 区块全透明
           } else {
+            // 计算平均颜色
+            const avgR = totalR / pixelCount;
+            const avgG = totalG / pixelCount;
+            const avgB = totalB / pixelCount;
+
+            // --- 核心改进：混合平均色和最深色 ---
+            // blendFactor 越大，轮廓越重。0.4 是一个比较柔和的平衡点。
+            const blendFactor = 0.4; 
+            
+            let finalR = avgR, finalG = avgG, finalB = avgB;
+
+            if (darkestPixel) {
+                // 如果找到了明显的深色像素，进行混合
+                finalR = avgR * (1 - blendFactor) + darkestPixel.r * blendFactor;
+                finalG = avgG * (1 - blendFactor) + darkestPixel.g * blendFactor;
+                finalB = avgB * (1 - blendFactor) + darkestPixel.b * blendFactor;
+            }
+
             // 匹配颜色
-            const match = findClosestColorId(darkestPixel.r, darkestPixel.g, darkestPixel.b);
+            const match = findClosestColorId(finalR, finalG, finalB);
             row.push(match);
           }
         }
@@ -554,7 +575,7 @@ export default function PerlerBeadApp() {
       <div className="bg-white px-4 pt-4 pb-4 shadow-sm z-10 border-b border-gray-100">
         <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800 mb-4">
           <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><Grid size={18} /></div>
-          图纸生成器 (增强版)
+          图纸生成器 (柔和增强版)
         </h1>
 
         {!patternData.length ? (
@@ -607,8 +628,6 @@ export default function PerlerBeadApp() {
           </div>
         )}
       </div>
-
-      {/* Removed hidden canvas, using offscreen canvas in logic now */}
 
       {patternData.length > 0 && (
         <div className="flex-1 overflow-auto bg-gray-200 p-4 custom-scrollbar relative">
