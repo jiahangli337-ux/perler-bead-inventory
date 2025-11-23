@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, ChevronDown, Download } from 'lucide-react';
+import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, ChevronDown, Download, Save } from 'lucide-react';
 
-// --- 1. 精确颜色数据库 ---
+// --- 1. 精确颜色数据库 (保持不变) ---
 const EXACT_COLORS = {
   // --- A 黄色系 ---
   'A01': '#FDFBC8', 'A02': '#FFFACD', 'A03': '#FFF200', 'A04': '#FFD700', 'A05': '#FFC125',
@@ -201,9 +201,12 @@ export default function PerlerBeadApp() {
   const [patternData, setPatternData] = useState([]); 
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // --- Deduction State ---
+  // --- Deduction & Preview State ---
   const [showDeductModal, setShowDeductModal] = useState(false);
   const [deductionList, setDeductionList] = useState([]); 
+  
+  // 新增：图片预览弹窗状态 (解决手机端无法自动下载的问题)
+  const [previewImage, setPreviewImage] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -215,7 +218,7 @@ export default function PerlerBeadApp() {
       const groups = {};
       Object.keys(SERIES_CONFIG).forEach(key => groups[key] = []);
       Object.keys(EXACT_COLORS).forEach(id => {
-          if (EXACT_COLORS[id] === 'transparent') return; // 不在下拉中显示透明豆
+          if (EXACT_COLORS[id] === 'transparent') return; 
           const prefix = id.charAt(0);
           if (groups[prefix]) {
               groups[prefix].push(id);
@@ -263,7 +266,7 @@ export default function PerlerBeadApp() {
     }
   };
 
-  // --- Pattern Generator Logic (核心升级：柔和版智能轮廓增强) ---
+  // --- Pattern Generator Logic ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -282,7 +285,6 @@ export default function PerlerBeadApp() {
     const img = new Image();
     img.src = selectedImage;
     img.onload = () => {
-      // 1. 创建临时 Canvas 获取原始高分辨率图像数据
       const sourceCanvas = document.createElement('canvas');
       sourceCanvas.width = img.width;
       sourceCanvas.height = img.height;
@@ -290,7 +292,6 @@ export default function PerlerBeadApp() {
       sourceCtx.drawImage(img, 0, 0);
       const sourceData = sourceCtx.getImageData(0, 0, img.width, img.height).data;
       
-      // 2. 计算目标尺寸
       const aspectRatio = img.height / img.width;
       const targetWidth = parseInt(patternWidth);
       const targetHeight = Math.round(targetWidth * aspectRatio);
@@ -299,7 +300,6 @@ export default function PerlerBeadApp() {
       const blockWidth = img.width / targetWidth;
       const blockHeight = img.height / targetHeight;
 
-      // 3. 柔和智能采样循环
       for (let y = 0; y < targetHeight; y++) {
         const row = [];
         for (let x = 0; x < targetWidth; x++) {
@@ -317,19 +317,17 @@ export default function PerlerBeadApp() {
             for (let sx = startX; sx < endX; sx++) {
                 const i = (sy * img.width + sx) * 4;
                 const a = sourceData[i + 3];
-                if (a < 128) continue; // 跳过透明像素
+                if (a < 128) continue; 
 
                 const r = sourceData[i];
                 const g = sourceData[i + 1];
                 const b = sourceData[i + 2];
                 
-                // 累加用于计算平均值
                 totalR += r;
                 totalG += g;
                 totalB += b;
                 pixelCount++;
 
-                // 寻找最深色
                 const brightness = r + g + b;
                 if (brightness < minBrightness) {
                     minBrightness = brightness;
@@ -339,27 +337,21 @@ export default function PerlerBeadApp() {
           }
 
           if (pixelCount === 0) {
-            row.push(null); // 区块全透明
+            row.push(null); 
           } else {
-            // 计算平均颜色
             const avgR = totalR / pixelCount;
             const avgG = totalG / pixelCount;
             const avgB = totalB / pixelCount;
 
-            // --- 核心改进：混合平均色和最深色 ---
-            // blendFactor 越大，轮廓越重。0.4 是一个比较柔和的平衡点。
             const blendFactor = 0.4; 
-            
             let finalR = avgR, finalG = avgG, finalB = avgB;
 
             if (darkestPixel) {
-                // 如果找到了明显的深色像素，进行混合
                 finalR = avgR * (1 - blendFactor) + darkestPixel.r * blendFactor;
                 finalG = avgG * (1 - blendFactor) + darkestPixel.g * blendFactor;
                 finalB = avgB * (1 - blendFactor) + darkestPixel.b * blendFactor;
             }
 
-            // 匹配颜色
             const match = findClosestColorId(finalR, finalG, finalB);
             row.push(match);
           }
@@ -372,6 +364,7 @@ export default function PerlerBeadApp() {
     };
   };
 
+  // --- 核心修复：保存图片逻辑 ---
   const handleSaveImage = () => {
     if (!patternData.length) return;
     const cellSize = 40; 
@@ -400,18 +393,25 @@ export default function PerlerBeadApp() {
         });
     });
 
+    // 不再自动下载，而是生成预览图供手机端使用
     try {
         const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `拼豆图纸-${new Date().getTime()}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        setPreviewImage(dataUrl); // 打开预览弹窗
     } catch (err) {
-        console.error('Save image failed', err);
-        alert('保存图片失败，请重试');
+        console.error('Generate image failed', err);
+        alert('图片生成失败，请重试');
     }
+  };
+
+  // 在预览弹窗中的下载按钮（针对电脑端）
+  const downloadImageFromPreview = () => {
+      if (!previewImage) return;
+      const link = document.createElement('a');
+      link.download = `拼豆图纸-${new Date().getTime()}.png`;
+      link.href = previewImage;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
   };
 
   const patternSummary = useMemo(() => {
@@ -425,10 +425,9 @@ export default function PerlerBeadApp() {
     return Object.entries(summary)
       .map(([id, count]) => {
         const colorInfo = CACHED_RGB_COLORS.find(c => c.id === id);
-        // 如果找不到（比如是透明豆H01，虽然生成逻辑排除了，但为了安全），给个默认
         return { id, count, hex: colorInfo ? colorInfo.hex : '#CCCCCC' };
       })
-      .filter(item => item.hex !== 'transparent') // 再次过滤以防万一
+      .filter(item => item.hex !== 'transparent') 
       .sort((a, b) => b.count - a.count);
   }, [patternData]);
 
@@ -672,7 +671,7 @@ export default function PerlerBeadApp() {
                     onClick={handleSaveImage}
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all"
                 >
-                    <Download size={14} /> 保存高清图纸
+                    <Save size={14} /> 保存图纸
                 </button>
                 <button 
                     onClick={openDeductModal}
@@ -747,7 +746,7 @@ export default function PerlerBeadApp() {
         </div>
       )}
 
-      {/* 库存扣除确认弹窗 (Updated with Dropdown) */}
+      {/* 1. 扣除确认弹窗 */}
       {showDeductModal && (
         <div className="absolute inset-0 z-50 flex items-end justify-center">
            <div 
@@ -756,22 +755,16 @@ export default function PerlerBeadApp() {
            ></div>
            <div className="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[80vh]">
               <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6 shrink-0"></div>
-              
               <div className="text-center mb-6 shrink-0">
-                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle size={32} />
-                </div>
+                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3"><CheckCircle size={32} /></div>
                 <h2 className="text-xl font-bold text-gray-900">确认消耗</h2>
                 <p className="text-sm text-gray-500 mt-1">您可以修改实际使用的色号和数量。</p>
               </div>
-
               <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl mb-4 bg-gray-50 p-2">
                  {deductionList.map((item, index) => (
                    <div key={item._key} className="flex items-center justify-between p-3 bg-white mb-2 rounded-lg shadow-sm border border-gray-100">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                          <div className="w-8 h-8 rounded-full border border-gray-200 shadow-sm shrink-0 transition-colors duration-300" style={{backgroundColor: item.hex}}></div>
-                         
-                         {/* 色号选择器 (Dropdown) */}
                          <div className="relative flex-1 max-w-[100px]">
                             <select 
                                 value={item.id}
@@ -780,18 +773,13 @@ export default function PerlerBeadApp() {
                             >
                                 {Object.entries(groupedColorOptions).map(([series, ids]) => (
                                     <optgroup label={SERIES_CONFIG[series].label} key={series}>
-                                        {ids.map(id => (
-                                            <option key={id} value={id}>{id}</option>
-                                        ))}
+                                        {ids.map(id => (<option key={id} value={id}>{id}</option>))}
                                     </optgroup>
                                 ))}
                             </select>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <ChevronDown size={12} />
-                            </div>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"><ChevronDown size={12} /></div>
                          </div>
                       </div>
-
                       <div className="flex items-center gap-2 ml-2">
                          <span className="text-xs text-gray-400">消耗</span>
                          <input 
@@ -805,12 +793,30 @@ export default function PerlerBeadApp() {
                    </div>
                  ))}
               </div>
-
               <div className="flex gap-3 shrink-0">
                  <button onClick={() => setShowDeductModal(false)} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">取消</button>
                  <button onClick={handleConfirmDeduction} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">确认扣除</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* 2. 图片预览弹窗 (修复手机保存问题) */}
+      {previewImage && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setPreviewImage(null)}>
+            <div className="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setPreviewImage(null)} className="absolute -top-3 -right-3 bg-white rounded-full p-1.5 text-gray-500 shadow-lg"><X size={20} /></button>
+                <div className="text-center mb-3">
+                    <h3 className="font-bold text-lg text-gray-800">图纸已生成</h3>
+                    <p className="text-xs text-gray-500">手机端请长按下方图片保存到相册</p>
+                </div>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-2 bg-gray-50 mb-4 max-h-[60vh] overflow-auto flex justify-center">
+                    <img src={previewImage} alt="Generated Pattern" className="max-w-full h-auto rounded shadow-sm" />
+                </div>
+                <button onClick={downloadImageFromPreview} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+                    <Download size={18} /> 电脑端直接下载
+                </button>
+            </div>
         </div>
       )}
 
