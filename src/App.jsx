@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, Download, Upload } from 'lucide-react';
+import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, AlertCircle } from 'lucide-react';
 
 // --- 1. 精确颜色数据库 (保持不变) ---
 const EXACT_COLORS = {
@@ -8,16 +8,14 @@ const EXACT_COLORS = {
   'A06': '#FFB03B', 'A07': '#FF8C00', 'A08': '#FFC850', 'A09': '#FF7F50', 'A10': '#FF4500',
   'A11': '#FFE5B4', 'A12': '#FF9966', 'A13': '#FFCC33', 'A14': '#D72D34', 'A15': '#FFFFE0',
   'A16': '#FAFAD2', 'A17': '#FCE57E', 'A18': '#FFCC99', 'A19': '#FF6F61', 'A20': '#EEDC82',
-  'A21': '#F0E68C', 'A22': '#DFFF00', 'A23': '#E3D5C3', 'A24': '#E7E2B0', 'A25': '#FFDB58',
-  'A26': '#DAA520',
+  'A21': '#F0E68C', 'A22': '#DFFF00', 'A23': '#E3D5C3', 'A24': '#E7E2B0', 'A25': '#FFDB58', 'A26': '#DAA520',
  
   'B01': '#CCFF33', 'B02': '#66FF00', 'B03': '#99FF66', 'B04': '#76EE00', 'B05': '#33CC33',
   'B06': '#66CDAA', 'B07': '#2E8B57', 'B08': '#006400', 'B09': '#2F4F4F', 'B10': '#93CDB9',
   'B11': '#556B2F', 'B12': '#004837', 'B13': '#9ACD32', 'B14': '#7CFC00', 'B15': '#1B4D3E',
   'B16': '#98FB98', 'B17': '#808000', 'B18': '#FFFF66', 'B19': '#20B2AA', 'B20': '#AFEEEE',
   'B21': '#008080', 'B22': '#053436', 'B23': '#162015', 'B24': '#F0E68C', 'B25': '#5F9EA0',
-  'B26': '#6B8E23', 'B27': '#E0F3CD', 'B28': '#90EE90', 'B29': '#ADFF2F', 'B30': '#F0FFF0',
-  'B31': '#C1F0C1', 'B32': '#8FBC8F',
+  'B26': '#6B8E23', 'B27': '#E0F3CD', 'B28': '#90EE90', 'B29': '#ADFF2F', 'B30': '#F0FFF0', 'B31': '#C1F0C1', 'B32': '#8FBC8F',
  
   'C01': '#E0FFFF', 'C02': '#AFEEEE', 'C03': '#ADD8E6', 'C04': '#87CEEB', 'C05': '#00BFFF',
   'C06': '#1E90FF', 'C07': '#4169E1', 'C08': '#0000FF', 'C09': '#0000CD', 'C10': '#33B0E3',
@@ -30,8 +28,7 @@ const EXACT_COLORS = {
   'D06': '#A674B8', 'D07': '#8767A3', 'D08': '#E6E6FA', 'D09': '#D6CADD', 'D10': '#2E1B3E',
   'D11': '#C6B5D4', 'D12': '#D98CB0', 'D13': '#C71585', 'D14': '#8B008B', 'D15': '#2C1D5E',
   'D16': '#E8E8FF', 'D17': '#DCDCDC', 'D18': '#9966CC', 'D19': '#DDA0DD', 'D20': '#BA55D3',
-  'D21': '#800080', 'D22': '#282266', 'D23': '#F3E5F5', 'D24': '#7B68EE', 'D25': '#414EA4',
-  'D26': '#E0B0FF',
+  'D21': '#800080', 'D22': '#282266', 'D23': '#F3E5F5', 'D24': '#7B68EE', 'D25': '#414EA4', 'D26': '#E0B0FF',
  
   'E01': '#FFE4E1', 'E02': '#FFB6C1', 'E03': '#FFC0CB', 'E04': '#FF69B4', 'E05': '#FF1493',
   'E06': '#D74868', 'E07': '#C71585', 'E08': '#FFE4E1', 'E09': '#DA70D6', 'E10': '#C71585',
@@ -48,8 +45,7 @@ const EXACT_COLORS = {
   'G01': '#FFF8DC', 'G02': '#FFE4C4', 'G03': '#FFDEAD', 'G04': '#F5DEB3', 'G05': '#DEB887',
   'G06': '#DAA520', 'G07': '#8B5A2B', 'G08': '#5D4037', 'G09': '#D2B48C', 'G10': '#CD853F',
   'G11': '#BDB76B', 'G12': '#F0E68C', 'G13': '#A0522D', 'G14': '#6D4C41', 'G15': '#F5F5DC',
-  'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513',
-  'G21': '#8D6E63',
+  'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513', 'G21': '#8D6E63',
  
   'H01': '#FFFFFF', 'H02': '#F8F8FF', 'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
   'H06': '#1A1A1A', 'H07': '#000000', 'H08': '#F2F2F2', 'H09': '#F5F5F5', 'H10': '#E0E0E0',
@@ -191,6 +187,11 @@ export default function PerlerBeadApp() {
   const [patternWidth, setPatternWidth] = useState(25); // 默认宽度 25 颗豆子
   const [patternData, setPatternData] = useState([]); // 存储二维数组
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // --- Deduction State (新增) ---
+  const [showDeductModal, setShowDeductModal] = useState(false);
+  const [deductionList, setDeductionList] = useState([]); // [{id, count, hex}, ...]
+
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -259,7 +260,6 @@ export default function PerlerBeadApp() {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       
-      // 计算目标尺寸
       const aspectRatio = img.height / img.width;
       const targetWidth = parseInt(patternWidth);
       const targetHeight = Math.round(targetWidth * aspectRatio);
@@ -267,10 +267,8 @@ export default function PerlerBeadApp() {
       canvas.width = targetWidth;
       canvas.height = targetHeight;
 
-      // 绘制缩小后的图片 (像素化核心)
       ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-      // 获取像素数据
       const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const pixels = imageData.data;
       const newPattern = [];
@@ -285,10 +283,8 @@ export default function PerlerBeadApp() {
           const a = pixels[index + 3];
 
           if (a < 128) {
-            // 透明区域
             row.push(null); 
           } else {
-            // 匹配颜色
             const match = findClosestColorId(r, g, b);
             row.push(match);
           }
@@ -310,7 +306,6 @@ export default function PerlerBeadApp() {
       }
     });
     
-    // 转换为数组并排序
     return Object.entries(summary)
       .map(([id, count]) => {
         const colorInfo = CACHED_RGB_COLORS.find(c => c.id === id);
@@ -319,11 +314,48 @@ export default function PerlerBeadApp() {
       .sort((a, b) => b.count - a.count);
   }, [patternData]);
 
+  // --- Deduction Logic (新增逻辑) ---
+
+  // 1. 初始化并打开扣除弹窗
+  const openDeductModal = () => {
+    // 深度复制一份数据到 deductionList，以便用户修改
+    const initialList = patternSummary.map(item => ({...item}));
+    setDeductionList(initialList);
+    setShowDeductModal(true);
+  };
+
+  // 2. 处理弹窗中输入的修改
+  const handleDeductChange = (id, newCount) => {
+    const validCount = Math.max(0, parseInt(newCount) || 0);
+    setDeductionList(prev => prev.map(item => item.id === id ? { ...item, count: validCount } : item));
+  };
+
+  // 3. 确认并执行扣除
+  const handleConfirmDeduction = () => {
+    setBeads(prevBeads => {
+      const newBeads = [...prevBeads];
+      deductionList.forEach(deductItem => {
+        const beadIndex = newBeads.findIndex(b => b.id === deductItem.id);
+        if (beadIndex > -1) {
+          // 确保不扣成负数 (或者你可以允许负数表示欠缺)
+          newBeads[beadIndex] = {
+            ...newBeads[beadIndex],
+            count: Math.max(0, newBeads[beadIndex].count - deductItem.count)
+          };
+        }
+      });
+      return newBeads;
+    });
+
+    setShowDeductModal(false);
+    // 这里可以加一个简单的 Toast 提示，这里用 alert 代替
+    alert('🎉 已扣除库存，作品完成！');
+  };
+
   // --- Render Views ---
 
   const renderInventoryView = () => (
     <>
-      {/* 顶部区域 */}
       <div className="bg-white px-4 pt-4 pb-2 shadow-sm z-10">
         <div className="flex justify-between items-center mb-3">
           <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800">
@@ -352,7 +384,6 @@ export default function PerlerBeadApp() {
         </div>
       </div>
 
-      {/* 分类导航栏 */}
       <div className="bg-white border-b border-gray-100 py-2 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
         <div ref={categoryScrollRef} className="flex overflow-x-auto px-4 gap-2 custom-scrollbar pb-1 select-none">
           <button
@@ -374,7 +405,6 @@ export default function PerlerBeadApp() {
         </div>
       </div>
 
-      {/* 主列表区域 */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-3 space-y-2 custom-scrollbar pb-24">
         {filteredBeads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
@@ -469,21 +499,17 @@ export default function PerlerBeadApp() {
         ) : (
           <div className="flex gap-2">
              <button onClick={() => setPatternData([])} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-bold">重新上传</button>
-             {/* 此处可以添加保存/下载功能 */}
           </div>
         )}
       </div>
 
-      {/* Canvas (Hidden) */}
       <canvas ref={canvasRef} className="hidden"></canvas>
 
-      {/* Grid Display Area */}
       {patternData.length > 0 && (
         <div className="flex-1 overflow-auto bg-gray-200 p-4 custom-scrollbar relative">
           <div className="bg-white shadow-2xl inline-block p-1 border border-gray-300">
-            {/* 顶部坐标轴 (可选优化) */}
              <div className="flex">
-               <div className="w-6 shrink-0"></div> {/* 左上角空缺 */}
+               <div className="w-6 shrink-0"></div>
                {patternData[0].map((_, i) => (
                   <div key={i} className="w-6 text-[8px] text-center text-gray-400 flex items-end justify-center pb-0.5 border-b border-gray-100">{(i+1)%5===0 ? i+1 : ''}</div>
                ))}
@@ -491,11 +517,9 @@ export default function PerlerBeadApp() {
 
             {patternData.map((row, y) => (
               <div key={y} className="flex">
-                 {/* 左侧坐标轴 */}
                  <div className="w-6 text-[8px] text-right pr-1 text-gray-400 flex items-center justify-end border-r border-gray-100 h-6">
                     {(y+1)%5===0 ? y+1 : ''}
                  </div>
-                 
                 {row.map((cell, x) => (
                   <div 
                     key={x} 
@@ -515,29 +539,38 @@ export default function PerlerBeadApp() {
         </div>
       )}
       
-      {/* Pattern Summary Panel (Bill of Materials) */}
       {patternData.length > 0 && (
-        <div className="bg-white border-t border-gray-200 p-3 h-48 overflow-y-auto custom-scrollbar z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">所需材料清单</h3>
-           <div className="grid grid-cols-4 gap-2">
-             {patternSummary.map(item => {
-               // 检查库存是否充足 (Nice to have feature)
-               const inventoryItem = beads.find(b => b.id === item.id);
-               const isEnough = inventoryItem ? inventoryItem.count >= item.count : false;
-               
-               return (
-                <div key={item.id} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
-                  <div className="w-6 h-6 rounded-full border border-gray-200 shadow-sm mb-1" style={{backgroundColor: item.hex}}></div>
-                  <span className="text-xs font-bold text-gray-800">{item.id}</span>
-                  <div className="flex items-baseline gap-0.5 mt-0.5">
-                     <span className="text-sm font-bold text-indigo-600">{item.count}</span>
-                     <span className="text-[8px] text-gray-400">颗</span>
+        <div className="bg-white border-t border-gray-200 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex flex-col" style={{maxHeight: '40vh'}}>
+           <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
+             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">所需材料清单</h3>
+             <button 
+                onClick={openDeductModal}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all shadow-sm"
+             >
+                <CheckCircle size={14} /> 完成制作
+             </button>
+           </div>
+           
+           <div className="overflow-y-auto p-3 custom-scrollbar">
+             <div className="grid grid-cols-4 gap-2">
+               {patternSummary.map(item => {
+                 const inventoryItem = beads.find(b => b.id === item.id);
+                 const isEnough = inventoryItem ? inventoryItem.count >= item.count : false;
+                 
+                 return (
+                  <div key={item.id} className="flex flex-col items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="w-6 h-6 rounded-full border border-gray-200 shadow-sm mb-1" style={{backgroundColor: item.hex}}></div>
+                    <span className="text-xs font-bold text-gray-800">{item.id}</span>
+                    <div className="flex items-baseline gap-0.5 mt-0.5">
+                       <span className="text-sm font-bold text-indigo-600">{item.count}</span>
+                       <span className="text-[8px] text-gray-400">颗</span>
+                    </div>
+                    {!isEnough && (
+                       <span className="text-[8px] text-red-500 bg-red-50 px-1 rounded mt-1">缺 {item.count - (inventoryItem?.count || 0)}</span>
+                    )}
                   </div>
-                  {!isEnough && (
-                     <span className="text-[8px] text-red-500 bg-red-50 px-1 rounded mt-1">缺 {item.count - (inventoryItem?.count || 0)}</span>
-                  )}
-                </div>
-             )})}
+               )})}
+             </div>
            </div>
         </div>
       )}
@@ -547,12 +580,10 @@ export default function PerlerBeadApp() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans text-gray-800 max-w-md mx-auto shadow-2xl overflow-hidden relative">
       
-      {/* 内容区域 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'inventory' ? renderInventoryView() : renderMakerView()}
       </div>
 
-      {/* 底部导航栏 */}
       <div className="bg-white border-t border-gray-200 flex justify-around items-center h-16 shrink-0 z-20 pb-safe">
         <button 
           onClick={() => setActiveTab('inventory')}
@@ -580,6 +611,53 @@ export default function PerlerBeadApp() {
                 <p className="text-xs text-gray-400 text-center px-2">这会清空库存数量，并严格重置为包含 A, B, C, D, E, F, G, H, M 系列的最新图谱数据。</p>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full mt-6 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">关闭</button>
+           </div>
+        </div>
+      )}
+
+      {/* 库存扣除确认弹窗 (新增) */}
+      {showDeductModal && (
+        <div className="absolute inset-0 z-50 flex items-end justify-center">
+           <div 
+             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
+             onClick={() => setShowDeductModal(false)}
+           ></div>
+           <div className="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[80vh]">
+              <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6 shrink-0"></div>
+              
+              <div className="text-center mb-6 shrink-0">
+                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">确认消耗数量</h2>
+                <p className="text-sm text-gray-500 mt-1">请确认或修改实际消耗的豆子数量，点击确认后将从库存中扣除。</p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-100 rounded-xl mb-4 bg-gray-50 p-2">
+                 {deductionList.map(item => (
+                   <div key={item.id} className="flex items-center justify-between p-3 bg-white mb-2 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full border border-gray-200 shadow-sm" style={{backgroundColor: item.hex}}></div>
+                         <span className="font-bold text-gray-800 w-8">{item.id}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <span className="text-xs text-gray-400">消耗</span>
+                         <input 
+                           type="number" 
+                           value={item.count}
+                           onChange={(e) => handleDeductChange(item.id, e.target.value)}
+                           className="w-16 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-right font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                         />
+                         <span className="text-xs text-gray-400">颗</span>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+
+              <div className="flex gap-3 shrink-0">
+                 <button onClick={() => setShowDeductModal(false)} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">取消</button>
+                 <button onClick={handleConfirmDeduction} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-[0.98] transition-transform">确认扣除</button>
+              </div>
            </div>
         </div>
       )}
