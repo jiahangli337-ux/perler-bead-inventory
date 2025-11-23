@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-// 确保你安装了 lucide-react: npm install lucide-react
-import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, ChevronDown } from 'lucide-react';
+// 确保安装了 lucide-react
+import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, ChevronDown, Download } from 'lucide-react';
 
 // --- 1. 精确颜色数据库 ---
 const EXACT_COLORS = {
@@ -306,6 +306,59 @@ export default function PerlerBeadApp() {
     };
   };
 
+  // 保存图片的核心逻辑
+  const handleSaveImage = () => {
+    if (!patternData.length) return;
+
+    // 1. 设置高分辨率参数
+    const cellSize = 40; // 每个豆子40px，足够高清
+    const width = patternData[0].length * cellSize;
+    const height = patternData.length * cellSize;
+
+    // 2. 创建临时 Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    // 3. 绘制逻辑
+    patternData.forEach((row, y) => {
+        row.forEach((cell, x) => {
+            // 背景色
+            ctx.fillStyle = cell ? cell.hex : '#ffffff'; // 空白处为白
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+            // 网格线
+            ctx.strokeStyle = '#e5e7eb'; // 浅灰线条
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+            // 文字
+            if (cell) {
+                ctx.fillStyle = getContrastYIQ(cell.hex);
+                ctx.font = 'bold 14px sans-serif'; // 字体大小
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(cell.id, x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+            }
+        });
+    });
+
+    // 4. 导出并下载
+    try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `拼豆图纸-${new Date().getTime()}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error('Save image failed', err);
+        alert('保存图片失败，请重试');
+    }
+  };
+
   // 统计图纸需要的豆子总量
   const patternSummary = useMemo(() => {
     const summary = {};
@@ -323,10 +376,9 @@ export default function PerlerBeadApp() {
       .sort((a, b) => b.count - a.count);
   }, [patternData]);
 
-  // --- Deduction Logic (Logic for Modals) ---
+  // --- Deduction Logic ---
 
   const openDeductModal = () => {
-    // 复制一份，添加唯一的 index key 用于 react 渲染
     const initialList = patternSummary.map((item, index) => ({...item, _key: index}));
     setDeductionList(initialList);
     setShowDeductModal(true);
@@ -560,12 +612,21 @@ export default function PerlerBeadApp() {
         <div className="bg-white border-t border-gray-200 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] flex flex-col" style={{maxHeight: '40vh'}}>
            <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">所需材料清单</h3>
-             <button 
-                onClick={openDeductModal}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all shadow-sm"
-             >
-                <CheckCircle size={14} /> 完成制作
-             </button>
+             <div className="flex gap-2">
+                {/* 新增下载按钮 */}
+                <button 
+                    onClick={handleSaveImage}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all"
+                >
+                    <Download size={14} /> 保存高清图纸
+                </button>
+                <button 
+                    onClick={openDeductModal}
+                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all shadow-sm"
+                >
+                    <CheckCircle size={14} /> 完成制作
+                </button>
+             </div>
            </div>
            
            <div className="overflow-y-auto p-3 custom-scrollbar">
@@ -632,7 +693,7 @@ export default function PerlerBeadApp() {
         </div>
       )}
 
-      {/* 库存扣除确认弹窗 (Updated with Dropdown) */}
+      {/* 库存扣除确认弹窗 */}
       {showDeductModal && (
         <div className="absolute inset-0 z-50 flex items-end justify-center">
            <div 
