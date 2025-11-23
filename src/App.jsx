@@ -1,59 +1,60 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-// 确保安装了 lucide-react
 import { Search, Plus, Minus, Package, X, Filter, ChevronRight, Settings, RefreshCw, Image as ImageIcon, Grid, CheckCircle, ChevronDown, Download } from 'lucide-react';
 
 // --- 1. 精确颜色数据库 ---
 const EXACT_COLORS = {
-  // --- Image 1: A, B, C, D ---
+  // --- A 黄色系 ---
   'A01': '#FDFBC8', 'A02': '#FFFACD', 'A03': '#FFF200', 'A04': '#FFD700', 'A05': '#FFC125',
   'A06': '#FFB03B', 'A07': '#FF8C00', 'A08': '#FFC850', 'A09': '#FF7F50', 'A10': '#FF4500',
   'A11': '#FFE5B4', 'A12': '#FF9966', 'A13': '#FFCC33', 'A14': '#D72D34', 'A15': '#FFFFE0',
   'A16': '#FAFAD2', 'A17': '#FCE57E', 'A18': '#FFCC99', 'A19': '#FF6F61', 'A20': '#EEDC82',
   'A21': '#F0E68C', 'A22': '#DFFF00', 'A23': '#E3D5C3', 'A24': '#E7E2B0', 'A25': '#FFDB58', 'A26': '#DAA520',
- 
+  // --- B 绿色系 ---
   'B01': '#CCFF33', 'B02': '#66FF00', 'B03': '#99FF66', 'B04': '#76EE00', 'B05': '#33CC33',
   'B06': '#66CDAA', 'B07': '#2E8B57', 'B08': '#006400', 'B09': '#2F4F4F', 'B10': '#93CDB9',
   'B11': '#556B2F', 'B12': '#004837', 'B13': '#9ACD32', 'B14': '#7CFC00', 'B15': '#1B4D3E',
   'B16': '#98FB98', 'B17': '#808000', 'B18': '#FFFF66', 'B19': '#20B2AA', 'B20': '#AFEEEE',
   'B21': '#008080', 'B22': '#053436', 'B23': '#162015', 'B24': '#F0E68C', 'B25': '#5F9EA0',
   'B26': '#6B8E23', 'B27': '#E0F3CD', 'B28': '#90EE90', 'B29': '#ADFF2F', 'B30': '#F0FFF0', 'B31': '#C1F0C1', 'B32': '#8FBC8F',
- 
+  // --- C 蓝色系 ---
   'C01': '#E0FFFF', 'C02': '#AFEEEE', 'C03': '#ADD8E6', 'C04': '#87CEEB', 'C05': '#00BFFF',
   'C06': '#1E90FF', 'C07': '#4169E1', 'C08': '#0000FF', 'C09': '#0000CD', 'C10': '#33B0E3',
   'C11': '#00CED1', 'C12': '#191970', 'C13': '#E1F4F9', 'C14': '#B0E0E6', 'C15': '#48D1CC',
   'C16': '#004681', 'C17': '#00BFFF', 'C18': '#1C2A45', 'C19': '#2874A6', 'C20': '#004F98',
   'C21': '#B0C4DE', 'C22': '#5F9EA0', 'C23': '#A5CAD6', 'C24': '#6495ED', 'C25': '#AFEEEE',
   'C26': '#4682B4', 'C27': '#E6E6FA', 'C28': '#D4D9E8', 'C29': '#27367D',
- 
+  // --- D 紫色系 ---
   'D01': '#E6E6FA', 'D02': '#BCA6D8', 'D03': '#4C5AA6', 'D04': '#1C2A5C', 'D05': '#9C4598',
   'D06': '#A674B8', 'D07': '#8767A3', 'D08': '#E6E6FA', 'D09': '#D6CADD', 'D10': '#2E1B3E',
   'D11': '#C6B5D4', 'D12': '#D98CB0', 'D13': '#C71585', 'D14': '#8B008B', 'D15': '#2C1D5E',
   'D16': '#E8E8FF', 'D17': '#DCDCDC', 'D18': '#9966CC', 'D19': '#DDA0DD', 'D20': '#BA55D3',
   'D21': '#800080', 'D22': '#282266', 'D23': '#F3E5F5', 'D24': '#7B68EE', 'D25': '#414EA4', 'D26': '#E0B0FF',
- 
+  // --- E 粉色系 ---
   'E01': '#FFE4E1', 'E02': '#FFB6C1', 'E03': '#FFC0CB', 'E04': '#FF69B4', 'E05': '#FF1493',
   'E06': '#D74868', 'E07': '#C71585', 'E08': '#FFE4E1', 'E09': '#DA70D6', 'E10': '#C71585',
   'E11': '#FADADD', 'E12': '#FF66CC', 'E13': '#8B0046', 'E14': '#FFDAB9', 'E15': '#FFE4E1',
   'E16': '#FFF0F5', 'E17': '#FFF5EE', 'E18': '#FFB6C1', 'E19': '#FFC1CC', 'E20': '#D8BFD8',
   'E21': '#BC8F8F', 'E22': '#C48EAC', 'E23': '#7B586D', 'E24': '#E6E6FA',
- 
+  // --- F 红色系 ---
   'F01': '#FFA07A', 'F02': '#FF6347', 'F03': '#FF4500', 'F04': '#FF0000', 'F05': '#DC143C',
   'F06': '#A52A2A', 'F07': '#B22222', 'F08': '#8B0000', 'F09': '#E9967A', 'F10': '#8B4513',
   'F11': '#52181B', 'F12': '#FF5C5C', 'F13': '#FF7F50', 'F14': '#FA8072', 'F15': '#D32F2F',
   'F16': '#FFDAB9', 'F17': '#F4A460', 'F18': '#D2691E', 'F19': '#CD5C5C', 'F20': '#BC8F8F',
   'F21': '#FFC0CB', 'F22': '#FFB6C1', 'F23': '#FF69B4', 'F24': '#FFB7C5', 'F25': '#E75480',
- 
+  // --- G 棕色系 ---
   'G01': '#FFF8DC', 'G02': '#FFE4C4', 'G03': '#FFDEAD', 'G04': '#F5DEB3', 'G05': '#DEB887',
   'G06': '#DAA520', 'G07': '#8B5A2B', 'G08': '#5D4037', 'G09': '#D2B48C', 'G10': '#CD853F',
   'G11': '#BDB76B', 'G12': '#F0E68C', 'G13': '#A0522D', 'G14': '#6D4C41', 'G15': '#F5F5DC',
   'G16': '#FAEBD7', 'G17': '#594139', 'G18': '#FFF0F5', 'G19': '#D2691E', 'G20': '#8B4513', 'G21': '#8D6E63',
- 
-  'H01': '#FFFFFF', 'H02': '#F8F8FF', 'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
+  // --- H 黑白灰 (修正：H01为透明，H02为纯白) ---
+  'H01': 'transparent', // 透明豆
+  'H02': '#FFFFFF',     // 纯白
+  'H03': '#D3D3D3', 'H04': '#A9A9A9', 'H05': '#696969',
   'H06': '#1A1A1A', 'H07': '#000000', 'H08': '#F2F2F2', 'H09': '#F5F5F5', 'H10': '#E0E0E0',
   'H11': '#CCCCCC', 'H12': '#FFFFFF', 'H13': '#FFFFF0', 'H14': '#B0C4DE', 'H15': '#778899',
   'H16': '#111111', 'H17': '#F5F5F5', 'H18': '#FFFFFF', 'H19': '#FAFAFA', 'H20': '#9E9E9E',
   'H21': '#FFFFE0', 'H22': '#DCDCDC', 'H23': '#808080',
- 
+  // --- M 金属/灰 ---
   'M01': '#C0C0C0', 'M02': '#808080', 'M03': '#708090', 'M04': '#F5F5DC', 'M05': '#BDB76B',
   'M06': '#8B8B00', 'M07': '#BC8F8F', 'M08': '#CD5C5C', 'M09': '#CD853F', 'M10': '#C08081',
   'M11': '#897383', 'M12': '#55474F', 'M13': '#CC9966', 'M14': '#A0522D', 'M15': '#708090',
@@ -62,6 +63,7 @@ const EXACT_COLORS = {
 // --- 2. 颜色处理工具函数 ---
 
 const hexToRgb = (hex) => {
+  if (hex === 'transparent') return null;
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
     r: parseInt(result[1], 16),
@@ -78,16 +80,25 @@ const colorDistance = (rgb1, rgb2) => {
   );
 };
 
-const CACHED_RGB_COLORS = Object.entries(EXACT_COLORS).map(([id, hex]) => ({
-  id,
-  hex,
-  rgb: hexToRgb(hex)
-}));
+// 预处理颜色缓存，排除透明色 H01
+const CACHED_RGB_COLORS = Object.entries(EXACT_COLORS)
+    .filter(([_, hex]) => hex !== 'transparent')
+    .map(([id, hex]) => ({
+        id,
+        hex,
+        rgb: hexToRgb(hex)
+    }));
 
 const findClosestColorId = (r, g, b) => {
   let minDistance = Infinity;
   let closestColor = CACHED_RGB_COLORS[0];
   const targetRgb = { r, g, b };
+
+  // 特殊处理：如果是非常接近纯白色的，直接返回 H02
+  if (r > 250 && g > 250 && b > 250) {
+      const h02 = CACHED_RGB_COLORS.find(c => c.id === 'H02');
+      if (h02) return h02;
+  }
 
   for (const color of CACHED_RGB_COLORS) {
     if (!color.rgb) continue;
@@ -101,6 +112,7 @@ const findClosestColorId = (r, g, b) => {
 };
 
 const getContrastYIQ = (hexcolor) => {
+    if (hexcolor === 'transparent') return 'transparent';
     hexcolor = hexcolor.replace("#", "");
     var r = parseInt(hexcolor.substr(0,2),16);
     var g = parseInt(hexcolor.substr(2,2),16);
@@ -128,7 +140,8 @@ const generateInitialData = () => {
     for (let i = 1; i <= config.count; i++) {
       const numStr = i.toString().padStart(2, '0');
       const id = `${prefix}${numStr}`;
-      const hex = EXACT_COLORS[id] || '#CCCCCC';
+      let hex = EXACT_COLORS[id] || '#CCCCCC';
+      if (hex === 'transparent') hex = '#F0F0F0'; // 库存显示时用浅灰色代替透明
       data.push({ id, prefix, name: id, count: 0, hex });
     }
   });
@@ -137,7 +150,7 @@ const generateInitialData = () => {
 
 // --- 4. 主组件 ---
 export default function PerlerBeadApp() {
-  const [activeTab, setActiveTab] = useState('inventory'); // 'inventory' or 'pattern'
+  const [activeTab, setActiveTab] = useState('inventory'); 
   
   // --- Inventory State ---
   const [beads, setBeads] = useState(() => {
@@ -157,7 +170,11 @@ export default function PerlerBeadApp() {
     const validPrefixes = Object.keys(SERIES_CONFIG);
     const syncedData = initialData
       .filter(bead => validPrefixes.includes(bead.prefix))
-      .map(bead => ({ ...bead, hex: EXACT_COLORS[bead.id] || bead.hex }));
+      .map(bead => {
+          let hex = EXACT_COLORS[bead.id] || bead.hex;
+          if (hex === 'transparent') hex = '#F0F0F0';
+          return { ...bead, hex };
+      });
 
     const currentIds = new Set(syncedData.map(b => b.id));
     generateInitialData().forEach(item => {
@@ -180,26 +197,26 @@ export default function PerlerBeadApp() {
 
   // --- Pattern Generator State ---
   const [selectedImage, setSelectedImage] = useState(null);
-  const [patternWidth, setPatternWidth] = useState(25); // 默认宽度 25 颗豆子
-  const [patternData, setPatternData] = useState([]); // 存储二维数组
+  const [patternWidth, setPatternWidth] = useState(25); 
+  const [patternData, setPatternData] = useState([]); 
   const [isProcessing, setIsProcessing] = useState(false);
   
   // --- Deduction State ---
   const [showDeductModal, setShowDeductModal] = useState(false);
-  const [deductionList, setDeductionList] = useState([]); // [{id, count, hex}, ...]
+  const [deductionList, setDeductionList] = useState([]); 
 
   const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
+  // const canvasRef = useRef(null); // 不再需要显式的 canvasRef
 
   useEffect(() => {
     localStorage.setItem('perler-bead-inventory-v2', JSON.stringify(beads));
   }, [beads]);
 
-  // 构建下拉菜单选项，按系列分组，避免useMemo重复计算
   const groupedColorOptions = useMemo(() => {
       const groups = {};
       Object.keys(SERIES_CONFIG).forEach(key => groups[key] = []);
       Object.keys(EXACT_COLORS).forEach(id => {
+          if (EXACT_COLORS[id] === 'transparent') return; // 不在下拉中显示透明豆
           const prefix = id.charAt(0);
           if (groups[prefix]) {
               groups[prefix].push(id);
@@ -247,7 +264,7 @@ export default function PerlerBeadApp() {
     }
   };
 
-  // --- Pattern Generator Logic ---
+  // --- Pattern Generator Logic (核心升级：智能轮廓增强) ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -260,41 +277,69 @@ export default function PerlerBeadApp() {
   };
 
   const generatePattern = () => {
-    if (!selectedImage || !canvasRef.current) return;
+    if (!selectedImage) return;
     setIsProcessing(true);
 
     const img = new Image();
     img.src = selectedImage;
     img.onload = () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      // 1. 创建临时 Canvas 获取原始高分辨率图像数据
+      const sourceCanvas = document.createElement('canvas');
+      sourceCanvas.width = img.width;
+      sourceCanvas.height = img.height;
+      const sourceCtx = sourceCanvas.getContext('2d');
+      sourceCtx.drawImage(img, 0, 0);
+      const sourceData = sourceCtx.getImageData(0, 0, img.width, img.height).data;
       
+      // 2. 计算目标尺寸
       const aspectRatio = img.height / img.width;
       const targetWidth = parseInt(patternWidth);
       const targetHeight = Math.round(targetWidth * aspectRatio);
 
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-      const pixels = imageData.data;
       const newPattern = [];
+      // 计算每个豆子对应原图的区块大小
+      const blockWidth = img.width / targetWidth;
+      const blockHeight = img.height / targetHeight;
 
+      // 3. 智能采样循环
       for (let y = 0; y < targetHeight; y++) {
         const row = [];
         for (let x = 0; x < targetWidth; x++) {
-          const index = (y * targetWidth + x) * 4;
-          const r = pixels[index];
-          const g = pixels[index + 1];
-          const b = pixels[index + 2];
-          const a = pixels[index + 3];
+          // 确定当前豆子对应的原图区块范围
+          const startX = Math.floor(x * blockWidth);
+          const startY = Math.floor(y * blockHeight);
+          const endX = Math.min(img.width, Math.floor((x + 1) * blockWidth));
+          const endY = Math.min(img.height, Math.floor((y + 1) * blockHeight));
 
-          if (a < 128) {
-            row.push(null); 
+          // 核心逻辑：寻找区块内最深的非透明像素，以强调轮廓
+          let darkestPixel = null;
+          let minBrightness = 255 * 3 + 1; // 初始亮度设为最大
+
+          for (let sy = startY; sy < endY; sy++) {
+            for (let sx = startX; sx < endX; sx++) {
+                const i = (sy * img.width + sx) * 4;
+                const a = sourceData[i + 3];
+                if (a < 128) continue; // 跳过透明像素
+
+                const r = sourceData[i];
+                const g = sourceData[i + 1];
+                const b = sourceData[i + 2];
+                // 简单亮度计算 (R+G+B)
+                const brightness = r + g + b;
+
+                // 找到更黑的像素，更新
+                if (brightness < minBrightness) {
+                    minBrightness = brightness;
+                    darkestPixel = { r, g, b };
+                }
+            }
+          }
+
+          if (!darkestPixel) {
+            row.push(null); // 区块全透明
           } else {
-            const match = findClosestColorId(r, g, b);
+            // 匹配颜色
+            const match = findClosestColorId(darkestPixel.r, darkestPixel.g, darkestPixel.b);
             row.push(match);
           }
         }
@@ -306,37 +351,27 @@ export default function PerlerBeadApp() {
     };
   };
 
-  // 保存图片的核心逻辑
   const handleSaveImage = () => {
     if (!patternData.length) return;
-
-    // 1. 设置高分辨率参数
-    const cellSize = 40; // 每个豆子40px，足够高清
+    const cellSize = 40; 
     const width = patternData[0].length * cellSize;
     const height = patternData.length * cellSize;
 
-    // 2. 创建临时 Canvas
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // 3. 绘制逻辑
     patternData.forEach((row, y) => {
         row.forEach((cell, x) => {
-            // 背景色
-            ctx.fillStyle = cell ? cell.hex : '#ffffff'; // 空白处为白
+            ctx.fillStyle = cell ? cell.hex : '#ffffff';
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-
-            // 网格线
-            ctx.strokeStyle = '#e5e7eb'; // 浅灰线条
+            ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 1;
             ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-
-            // 文字
             if (cell) {
                 ctx.fillStyle = getContrastYIQ(cell.hex);
-                ctx.font = 'bold 14px sans-serif'; // 字体大小
+                ctx.font = 'bold 14px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(cell.id, x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
@@ -344,7 +379,6 @@ export default function PerlerBeadApp() {
         });
     });
 
-    // 4. 导出并下载
     try {
         const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -359,7 +393,6 @@ export default function PerlerBeadApp() {
     }
   };
 
-  // 统计图纸需要的豆子总量
   const patternSummary = useMemo(() => {
     const summary = {};
     patternData.flat().forEach(cell => {
@@ -371,8 +404,10 @@ export default function PerlerBeadApp() {
     return Object.entries(summary)
       .map(([id, count]) => {
         const colorInfo = CACHED_RGB_COLORS.find(c => c.id === id);
-        return { id, count, hex: colorInfo.hex };
+        // 如果找不到（比如是透明豆H01，虽然生成逻辑排除了，但为了安全），给个默认
+        return { id, count, hex: colorInfo ? colorInfo.hex : '#CCCCCC' };
       })
+      .filter(item => item.hex !== 'transparent') // 再次过滤以防万一
       .sort((a, b) => b.count - a.count);
   }, [patternData]);
 
@@ -394,7 +429,8 @@ export default function PerlerBeadApp() {
   };
 
   const handleDeductColorChange = (index, newId) => {
-    const newHex = EXACT_COLORS[newId];
+    let newHex = EXACT_COLORS[newId];
+    if (newHex === 'transparent') newHex = '#F0F0F0';
     setDeductionList(prev => {
         const newList = [...prev];
         newList[index] = { ...newList[index], id: newId, hex: newHex };
@@ -518,7 +554,7 @@ export default function PerlerBeadApp() {
       <div className="bg-white px-4 pt-4 pb-4 shadow-sm z-10 border-b border-gray-100">
         <h1 className="text-lg font-bold flex items-center gap-2 text-gray-800 mb-4">
           <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><Grid size={18} /></div>
-          图纸生成器
+          图纸生成器 (增强版)
         </h1>
 
         {!patternData.length ? (
@@ -552,7 +588,7 @@ export default function PerlerBeadApp() {
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
                    <span>10 (模糊)</span>
-                   <span>60 (清晰)</span>
+                   <span>60 (清晰 - 推荐)</span>
                 </div>
                 
                 <button 
@@ -560,7 +596,7 @@ export default function PerlerBeadApp() {
                   disabled={isProcessing}
                   className="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                 >
-                  {isProcessing ? '生成中...' : '生成图纸'}
+                  {isProcessing ? '智能生成中...' : '生成高清图纸'}
                 </button>
               </div>
             )}
@@ -572,7 +608,7 @@ export default function PerlerBeadApp() {
         )}
       </div>
 
-      <canvas ref={canvasRef} className="hidden"></canvas>
+      {/* Removed hidden canvas, using offscreen canvas in logic now */}
 
       {patternData.length > 0 && (
         <div className="flex-1 overflow-auto bg-gray-200 p-4 custom-scrollbar relative">
@@ -613,7 +649,6 @@ export default function PerlerBeadApp() {
            <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">所需材料清单</h3>
              <div className="flex gap-2">
-                {/* 新增下载按钮 */}
                 <button 
                     onClick={handleSaveImage}
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 active:scale-[0.98] transition-all"
@@ -693,7 +728,7 @@ export default function PerlerBeadApp() {
         </div>
       )}
 
-      {/* 库存扣除确认弹窗 */}
+      {/* 库存扣除确认弹窗 (Updated with Dropdown) */}
       {showDeductModal && (
         <div className="absolute inset-0 z-50 flex items-end justify-center">
            <div 
